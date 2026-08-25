@@ -4,8 +4,8 @@ import {Carousel} from '../../carousel.js';
 import {mainIdx} from '../../gpu.js';
 import {projects, projectPath} from '../../content/projects.js';
 import {useSlotBinding} from '../../composables/useSlotBinding.js';
+import {controllerRef} from '../../app-context.js';
 
-const controller = inject('controller');
 const gpu = inject('gpu');
 const root = ref(null);
 
@@ -14,13 +14,16 @@ const {bindSlot} = useSlotBinding(gpu, mainIdx);
 let carousel = null;
 
 onMounted(() => {
+  const controller = controllerRef.value;
+  if (!controller) return;
   carousel = new Carousel(root.value);
   controller.carousel = carousel;
 });
 
 onUnmounted(() => {
+  const controller = controllerRef.value;
   carousel?.stop();
-  if (controller.carousel === carousel) {
+  if (controller?.carousel === carousel) {
     controller.carousel = null;
   }
 });

@@ -220,16 +220,6 @@ export class GPU {
         }
     }
 
-    applyIndexLayout() {
-        for (let i = 0; i < MAIN_COUNT; i++) {
-            this.planes[mainIdx(i)].opacity = 1;
-            // Satellites are not part of the float constellation, hidden on /index.
-            for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
-                this.planes[satIdx(i, j)].opacity = 0;
-            }
-        }
-    }
-
     onResize() {
         const w = window.innerWidth;
         const h = window.innerHeight;

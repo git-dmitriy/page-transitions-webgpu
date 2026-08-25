@@ -5,10 +5,9 @@ import {GPU} from './gpu.js';
 import {Controller} from './controller.js';
 import {Cursor} from './cursor.js';
 import {Preloader} from './preloader.js';
+import {controllerRef, pageStack} from './app-context.js';
 
 async function start() {
-    createApp(App).mount('#root');
-
     const lenis = new Lenis({
         smoothWheel: true,
         syncTouch: true,
@@ -21,11 +20,17 @@ async function start() {
     const gpu = new GPU();
     await gpu.init();
 
+    const app = createApp(App);
+    app.provide('gpu', gpu);
+    app.mount('#root');
+
     const controller = new Controller({
         app: document.getElementById('app'),
         gpu,
         lenis,
+        pageStack,
     });
+    controllerRef.value = controller;
     await controller.start();
 
     function raf(time) {

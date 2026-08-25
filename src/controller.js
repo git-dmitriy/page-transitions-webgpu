@@ -1,16 +1,9 @@
 import gsap from "gsap";
 import {SplitText} from "gsap/SplitText";
-import {index as indexPage, IndexFloat} from "./pages/index-page.js";
 import {projects} from "./content/projects.js";
-import {mountWorkPage, unmountWorkPage} from "./core/work-page.js";
-import {mountCaseStudyPage, unmountCaseStudyPage} from "./core/case-study-page.js";
 import {MAIN_COUNT, SATELLITES_PER_IMAGE, mainIdx, satIdx} from "./gpu.js";
 
-import {IndexToInnerTransition} from "./transitions/indexToInner.js";
-import {IndexToMainTransition} from "./transitions/indexToMain.js";
 import {InnerToMainTransition} from "./transitions/innerToMain.js";
-import {InnerToIndexTransition} from "./transitions/innerToIndex.js";
-import {MainToIndexTransition} from "./transitions/mainToIndex.js";
 import {MainToInnerTransition} from "./transitions/mainToInner.js";
 
 gsap.registerPlugin(SplitText);
@@ -180,7 +173,6 @@ function animateChromeIn(selector, delay) {
 function buildRoutes() {
     const routes = {
         "/": {page: "main", image: null},
-        "/index": {page: "index", view: indexPage, image: null},
     };
 
     for (const project of projects) {
@@ -201,28 +193,21 @@ const ROUTES = buildRoutes();
 // ---------------------------------------------------------------------------
 
 export class Controller {
-    constructor({app, gpu, lenis}) {
+    constructor({app, gpu, lenis, pageStack}) {
         this.app = app;
         this.gpu = gpu;
         this.lenis = lenis;
+        this.pageStack = pageStack;
         this.routes = ROUTES;
 
-        // Registry: from-page -> to-page -> Transition
         this.transitions = {
             "main->inner": new MainToInnerTransition(),
             "inner->main": new InnerToMainTransition(),
-            "main->index": new MainToIndexTransition(),
-            "index->main": new IndexToMainTransition(),
-            "index->inner": new IndexToInnerTransition(),
-            "inner->index": new InnerToIndexTransition(),
         };
 
         this.current = null;
         this.mutating = false;
         this.carousel = null;
-        this.indexFloat = null;
-        this._mainMount = null;
-        this._caseMount = null;
 
         this.onClick = this.onClick.bind(this);
         this.onPopState = this.onPopState.bind(this);
@@ -240,7 +225,6 @@ export class Controller {
             this.carousel.tick();
             this._applyCarouselTilt(this.carousel.velocity);
         }
-        if (this.indexFloat) this.indexFloat.tick();
         if (this.current?.page === "inner" && !this.mutating) {
             this._applyInnerTilt(this.current.image, this.lenis.velocity ?? 0);
         }
@@ -280,35 +264,16 @@ export class Controller {
     async _renderInitial(path) {
         const route = this._routeFor(path);
         this.current = {path, ...route};
-        if (route.page === "main") {
-            this._mainMount = await mountWorkPage(this.app, {
-                controller: this,
-                gpu: this.gpu,
-            });
-        } else if (route.page === "inner") {
-            this._caseMount = await mountCaseStudyPage(this.app, {
-                controller: this,
-                gpu: this.gpu,
-                project: route.project,
-            });
-        } else {
-            this.app.innerHTML = route.view();
-        }
+        await this.pageStack.setSingle(path, route);
         this._snapLayout(this.current);
         this._setActiveNav(this.current.page);
         this._enterPage(this.current);
-        // Prime the intro: the page is built but everything stays hidden behind the
-        // preloader. _snapLayout lit the active planes, so remember which ones and
-        // drop them to zero; playIntro fades them back up once the preloader clears.
         for (const p of this.gpu.planes) {
             p.introVisible = p.opacity > 0.001;
             p.opacity = 0;
         }
     }
 
-    // First-load intro, played once after the preloader fades away (never on SPA
-    // transitions). Reveals the page text, the left nav and footer links, and
-    // fades the active planes up from transparent.
     playIntro() {
         const sec = this.app.querySelector(`[data-page="${this.current.page}"]`);
         animateTitleIn(sec);
@@ -326,15 +291,6 @@ export class Controller {
         }
         animateChromeIn("#nav a", INTRO_NAV_DELAY);
         animateChromeIn("#footer a", INTRO_FOOTER_DELAY);
-    }
-
-    _syncPlaneToEl(plane, el) {
-        plane.trackedEl = el;
-        const rect = el.getBoundingClientRect();
-        plane.bounds.x = rect.left;
-        plane.bounds.y = rect.top;
-        plane.bounds.w = rect.width;
-        plane.bounds.h = rect.height;
     }
 
     _enterPage(state) {
@@ -355,19 +311,6 @@ export class Controller {
             this.lenis.start();
             this.lenis.resize();
             this.lenis.scrollTo(0, {immediate: true, force: true});
-            return;
-        }
-
-        if (state.page === "index") {
-            document.body.style.height = "100vh";
-            this.lenis.stop();
-            this.lenis.scrollTo(0, {immediate: true, force: true});
-            if (!this.indexFloat) {
-                this.indexFloat = new IndexFloat(this.gpu);
-                this.indexFloat.prepare();
-            }
-            this.indexFloat.start();
-            return;
         }
     }
 
@@ -376,17 +319,9 @@ export class Controller {
         if (state.page === "main" && this.carousel) {
             this.carousel.stop();
             this.carousel = null;
-            // Clear any leftover scroll tilt so the main planes don't carry a lean
-            // into the inner/index pages, where they're reused as the hero image.
             for (let i = 0; i < MAIN_COUNT; i++) this.gpu.planes[mainIdx(i)].tilt = 0;
         }
-        if (state.page === "index" && this.indexFloat) {
-            this.indexFloat.stop();
-            this.indexFloat = null;
-        }
         if (state.page === "inner") {
-            // Clear the scroll lean so the reused hero/satellite planes don't carry
-            // it onto the next page.
             for (const plane of this._innerTiltPlanes(state.image)) plane.tiltX = 0;
         }
         for (const plane of this.gpu.planes) {
@@ -395,10 +330,7 @@ export class Controller {
     }
 
     _setActiveNav(pageKey) {
-        // Only the main and index pages have a corresponding nav link; inner
-        // pages leave the nav with nothing active.
-        const activeKey =
-            pageKey === "main" ? "main" : pageKey === "index" ? "index" : null;
+        const activeKey = pageKey === "main" ? "main" : null;
         const links = document.querySelectorAll("#nav a[data-nav-key]");
         for (const a of links) {
             if (activeKey && a.getAttribute("data-nav-key") === activeKey) {
@@ -411,7 +343,6 @@ export class Controller {
 
     _snapLayout(state) {
         if (state.page === "main") this.gpu.applyMainLayout();
-        else if (state.page === "index") this.gpu.applyIndexLayout();
         else if (state.page === "inner") this.gpu.applyInnerLayout(state.image);
     }
 
@@ -419,10 +350,6 @@ export class Controller {
         if (!this.current || this.mutating) return;
         if (this.current.page === "main" && this.carousel) {
             this.carousel.measure();
-            return;
-        }
-        if (this.current.page === "index" && this.indexFloat) {
-            this.indexFloat.measure();
             return;
         }
         this._snapLayout(this.current);
@@ -453,37 +380,19 @@ export class Controller {
 
         this._leavePage(fromState);
 
-        let toEl;
-        if (next.page === "main") {
-            this._mainMount = await mountWorkPage(this.app, {
-                controller: this,
-                gpu: this.gpu,
-            });
-            toEl = this._mainMount.host;
-            this.carousel?.prepare();
-        } else if (next.page === "inner") {
-            this._caseMount = await mountCaseStudyPage(this.app, {
-                controller: this,
-                gpu: this.gpu,
-                project: next.project,
-            });
-            toEl = this._caseMount.host;
-        } else {
-            this.app.insertAdjacentHTML("beforeend", next.view());
-            toEl = this.app.lastElementChild;
-        }
+        await this.pageStack.pushTransition(path, next);
+        this.pageStack.markOutgoingInactive();
 
         const fromEl = this.app.children[0];
-        if (fromEl) fromEl.style.pointerEvents = "none";
+        const toEl = this.app.children[1];
+
+        if (next.page === "main") {
+            this.carousel?.prepare();
+        }
 
         if (window.scrollY !== 0 || window.scrollX !== 0) {
             this.lenis.scrollTo(0, {immediate: true, force: true});
             window.scrollTo(0, 0);
-        }
-
-        if (next.page === "index") {
-            this.indexFloat = new IndexFloat(this.gpu);
-            this.indexFloat.prepare();
         }
 
         const titleIn = animateTitleIn(toEl);
@@ -494,7 +403,6 @@ export class Controller {
             gpu: this.gpu,
             fromImage: fromState.image,
             toImage: next.image,
-            indexFloat: this.indexFloat,
         };
         const txOut = transition.out(fromEl, toEl, ctx);
         const txIn = transition.in(fromEl, toEl, ctx);
@@ -510,15 +418,7 @@ export class Controller {
             txIn,
         ]);
 
-        if (fromState.page === "main") {
-            unmountWorkPage(this._mainMount);
-            this._mainMount = null;
-        } else if (fromState.page === "inner") {
-            unmountCaseStudyPage(this._caseMount);
-            this._caseMount = null;
-        } else {
-            fromEl.remove();
-        }
+        await this.pageStack.dropOutgoing();
         this.current = toState;
         this._snapLayout(toState);
         this._enterPage(toState);
