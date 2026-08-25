@@ -1,9 +1,8 @@
 import gsap from "gsap";
 import {SplitText} from "gsap/SplitText";
-import {home} from "./pages/home.js";
 import {inner} from "./pages/inner.js";
 import {index as indexPage, IndexFloat} from "./pages/index-page.js";
-import {Carousel} from "./carousel.js";
+import {mountWorkPage, unmountWorkPage} from "./core/work-page.js";
 import {MAIN_COUNT, SATELLITES_PER_IMAGE, mainIdx, satIdx} from "./gpu.js";
 
 import {IndexToInnerTransition} from "./transitions/indexToInner.js";
@@ -178,7 +177,7 @@ function animateChromeIn(selector, delay) {
 // ---------------------------------------------------------------------------
 
 const ROUTES = {
-    "/": {page: "main", view: home, image: null},
+    "/": {page: "main", image: null},
     "/index": {page: "index", view: indexPage, image: null},
     "/1": {page: "inner", view: inner(0), image: 0},
     "/2": {page: "inner", view: inner(1), image: 1},
@@ -212,6 +211,7 @@ export class Controller {
         this.mutating = false;
         this.carousel = null;
         this.indexFloat = null;
+        this._mainMount = null;
 
         this.onClick = this.onClick.bind(this);
         this.onPopState = this.onPopState.bind(this);
@@ -269,7 +269,14 @@ export class Controller {
     async _renderInitial(path) {
         const route = this._routeFor(path);
         this.current = {path, ...route};
-        this.app.innerHTML = route.view();
+        if (route.page === "main") {
+            this._mainMount = await mountWorkPage(this.app, {
+                controller: this,
+                gpu: this.gpu,
+            });
+        } else {
+            this.app.innerHTML = route.view();
+        }
         this._snapLayout(this.current);
         this._setActiveNav(this.current.page);
         this._enterPage(this.current);
@@ -321,12 +328,7 @@ export class Controller {
             document.body.style.height = "100vh";
             this.lenis.stop();
             this.lenis.scrollTo(0, {immediate: true, force: true});
-            if (!this.carousel) this.carousel = new Carousel(sec);
-            this.carousel.start();
-            const slots = sec.querySelectorAll(".slot");
-            for (let i = 0; i < slots.length && i < MAIN_COUNT; i++) {
-                this._syncPlaneToEl(this.gpu.planes[mainIdx(i)], slots[i]);
-            }
+            this.carousel?.start();
             return;
         }
 
@@ -441,19 +443,25 @@ export class Controller {
 
         this._leavePage(fromState);
 
-        this.app.insertAdjacentHTML("beforeend", next.view());
+        let toEl;
+        if (next.page === "main") {
+            this._mainMount = await mountWorkPage(this.app, {
+                controller: this,
+                gpu: this.gpu,
+            });
+            toEl = this._mainMount.host;
+            this.carousel?.prepare();
+        } else {
+            this.app.insertAdjacentHTML("beforeend", next.view());
+            toEl = this.app.lastElementChild;
+        }
+
         const fromEl = this.app.children[0];
-        const toEl = this.app.lastElementChild;
         if (fromEl) fromEl.style.pointerEvents = "none";
 
         if (window.scrollY !== 0 || window.scrollX !== 0) {
             this.lenis.scrollTo(0, {immediate: true, force: true});
             window.scrollTo(0, 0);
-        }
-
-        if (next.page === "main") {
-            this.carousel = new Carousel(toEl);
-            this.carousel.prepare();
         }
 
         if (next.page === "index") {
@@ -485,7 +493,12 @@ export class Controller {
             txIn,
         ]);
 
-        fromEl.remove();
+        if (fromState.page === "main") {
+            unmountWorkPage(this._mainMount);
+            this._mainMount = null;
+        } else {
+            fromEl.remove();
+        }
         this.current = toState;
         this._snapLayout(toState);
         this._enterPage(toState);

@@ -1,5 +1,5 @@
 import {MAIN_COUNT, mainIdx} from '../gpu.js';
-import {getMainTargets} from '../pages/home.js';
+import {getMainTargets} from '../core/layout.js';
 import {tweenBounds} from './constants.js';
 
 export class IndexToMainTransition {
