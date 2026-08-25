@@ -1,17 +1,20 @@
-import Lenis from "lenis";
-import {GPU} from "./gpu.js";
-import {Controller} from "./controller.js";
-import {Cursor} from "./cursor.js";
-import {Preloader} from "./preloader.js";
+import {createApp} from 'vue';
+import Lenis from 'lenis';
+import App from './App.vue';
+import {GPU} from './gpu.js';
+import {Controller} from './controller.js';
+import {Cursor} from './cursor.js';
+import {Preloader} from './preloader.js';
 
 async function start() {
+    createApp(App).mount('#root');
+
     const lenis = new Lenis({
         smoothWheel: true,
         syncTouch: true,
         lerp: 0.09,
     });
 
-    // Count up while textures load and the page is built behind the overlay.
     const preloader = new Preloader();
     const counting = preloader.count();
 
@@ -19,7 +22,7 @@ async function start() {
     await gpu.init();
 
     const controller = new Controller({
-        app: document.getElementById("app"),
+        app: document.getElementById('app'),
         gpu,
         lenis,
     });
@@ -34,9 +37,6 @@ async function start() {
 
     requestAnimationFrame(raf);
 
-    // Hold until the counter reaches 100%, then lift the overlay and, in the same
-    // tick, play the page intro so its hidden start states are applied before the
-    // overlay clears (no flash of resting content).
     await counting;
     controller.playIntro();
     preloader.reveal();
