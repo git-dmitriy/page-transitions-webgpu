@@ -2,15 +2,8 @@
 import {inject, onMounted, onUnmounted, ref} from 'vue';
 import {Carousel} from '../../carousel.js';
 import {mainIdx} from '../../gpu.js';
+import {projects, projectPath} from '../../content/projects.js';
 import {useSlotBinding} from '../../composables/useSlotBinding.js';
-
-const CAPTIONS = [
-  'Nova Commerce',
-  'Atlas Dashboard',
-  'Prism Studio',
-  'Flux Banking',
-  'Orbit CMS',
-];
 
 const controller = inject('controller');
 const gpu = inject('gpu');
@@ -38,15 +31,15 @@ onUnmounted(() => {
     <h1 class="page-title">Work</h1>
     <div class="carousel">
       <a
-          v-for="(caption, i) in CAPTIONS"
-          :key="caption"
-          :href="`/${i + 1}`"
+          v-for="project in projects"
+          :key="project.slug"
+          :href="projectPath(project.slug)"
           data-link
-          :class="['slot', `slot-${i}`]"
-          :ref="(el) => bindSlot(i, el)"
+          :class="['slot', `slot-${project.index}`]"
+          :ref="(el) => bindSlot(project.index, el)"
       >
         <figure></figure>
-        <div class="slot-caption">{{ caption }}</div>
+        <div class="slot-caption">{{ project.title }}</div>
       </a>
     </div>
   </section>

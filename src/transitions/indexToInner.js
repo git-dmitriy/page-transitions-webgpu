@@ -4,7 +4,7 @@ import {
     mainIdx,
     satIdx,
 } from '../gpu.js';
-import {getInnerTargets} from '../pages/inner.js';
+import {getInnerTargets} from '../core/layout.js';
 import {
     tweenBounds,
     tweenOpacity,

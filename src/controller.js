@@ -1,8 +1,9 @@
 import gsap from "gsap";
 import {SplitText} from "gsap/SplitText";
-import {inner} from "./pages/inner.js";
 import {index as indexPage, IndexFloat} from "./pages/index-page.js";
+import {projects} from "./content/projects.js";
 import {mountWorkPage, unmountWorkPage} from "./core/work-page.js";
+import {mountCaseStudyPage, unmountCaseStudyPage} from "./core/case-study-page.js";
 import {MAIN_COUNT, SATELLITES_PER_IMAGE, mainIdx, satIdx} from "./gpu.js";
 
 import {IndexToInnerTransition} from "./transitions/indexToInner.js";
@@ -176,15 +177,24 @@ function animateChromeIn(selector, delay) {
 // Routes
 // ---------------------------------------------------------------------------
 
-const ROUTES = {
-    "/": {page: "main", image: null},
-    "/index": {page: "index", view: indexPage, image: null},
-    "/1": {page: "inner", view: inner(0), image: 0},
-    "/2": {page: "inner", view: inner(1), image: 1},
-    "/3": {page: "inner", view: inner(2), image: 2},
-    "/4": {page: "inner", view: inner(3), image: 3},
-    "/5": {page: "inner", view: inner(4), image: 4},
-};
+function buildRoutes() {
+    const routes = {
+        "/": {page: "main", image: null},
+        "/index": {page: "index", view: indexPage, image: null},
+    };
+
+    for (const project of projects) {
+        routes[`/work/${project.slug}`] = {
+            page: "inner",
+            project,
+            image: project.index,
+        };
+    }
+
+    return routes;
+}
+
+const ROUTES = buildRoutes();
 
 // ---------------------------------------------------------------------------
 // Controller
@@ -212,6 +222,7 @@ export class Controller {
         this.carousel = null;
         this.indexFloat = null;
         this._mainMount = null;
+        this._caseMount = null;
 
         this.onClick = this.onClick.bind(this);
         this.onPopState = this.onPopState.bind(this);
@@ -274,6 +285,12 @@ export class Controller {
                 controller: this,
                 gpu: this.gpu,
             });
+        } else if (route.page === "inner") {
+            this._caseMount = await mountCaseStudyPage(this.app, {
+                controller: this,
+                gpu: this.gpu,
+                project: route.project,
+            });
         } else {
             this.app.innerHTML = route.view();
         }
@@ -334,17 +351,10 @@ export class Controller {
 
         if (state.page === "inner") {
             const stack = sec.querySelector(".stack");
-            const slots = stack.querySelectorAll(".slot");
             document.body.style.height = `${stack.offsetHeight}px`;
             this.lenis.start();
             this.lenis.resize();
             this.lenis.scrollTo(0, {immediate: true, force: true});
-            this._syncPlaneToEl(this.gpu.planes[mainIdx(state.image)], slots[0]);
-            for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
-                const slot = slots[j + 1];
-                if (!slot) continue;
-                this._syncPlaneToEl(this.gpu.planes[satIdx(state.image, j)], slot);
-            }
             return;
         }
 
@@ -451,6 +461,13 @@ export class Controller {
             });
             toEl = this._mainMount.host;
             this.carousel?.prepare();
+        } else if (next.page === "inner") {
+            this._caseMount = await mountCaseStudyPage(this.app, {
+                controller: this,
+                gpu: this.gpu,
+                project: next.project,
+            });
+            toEl = this._caseMount.host;
         } else {
             this.app.insertAdjacentHTML("beforeend", next.view());
             toEl = this.app.lastElementChild;
@@ -496,6 +513,9 @@ export class Controller {
         if (fromState.page === "main") {
             unmountWorkPage(this._mainMount);
             this._mainMount = null;
+        } else if (fromState.page === "inner") {
+            unmountCaseStudyPage(this._caseMount);
+            this._caseMount = null;
         } else {
             fromEl.remove();
         }
