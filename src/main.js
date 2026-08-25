@@ -14,15 +14,15 @@ async function start() {
         lerp: 0.09,
     });
 
-    const preloader = new Preloader();
-    const counting = preloader.count();
-
     const gpu = new GPU();
     await gpu.init();
 
     const app = createApp(App);
     app.provide('gpu', gpu);
     app.mount('#root');
+
+    const preloader = new Preloader();
+    const counting = preloader.count();
 
     const controller = new Controller({
         app: document.getElementById('app'),
