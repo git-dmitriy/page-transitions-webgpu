@@ -17,7 +17,7 @@ function seededRandom(seed) {
 export function index() {
     return `
     <section data-page="index" class="page page-index">
-      <h1 class="page-title">Index</h1>
+      <h1 class="page-title">Archive</h1>
     </section>
   `;
 }

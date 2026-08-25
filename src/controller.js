@@ -15,7 +15,7 @@ import {MainToInnerTransition} from "./transitions/mainToInner.js";
 
 gsap.registerPlugin(SplitText);
 
-// Carousel scroll tilt: the harder you scroll the "Selected" page, the more the
+// Carousel scroll tilt: the harder you scroll the Work page, the more the
 // planes rotate about their Y axis (perspective lean). Tilt is derived from the
 // carousel's per-frame velocity (px), clamped, and eased toward so it springs
 // back to flat when scrolling stops.
