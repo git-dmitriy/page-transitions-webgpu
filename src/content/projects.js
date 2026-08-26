@@ -42,7 +42,7 @@ export const projects = [
 ];
 
 export function projectPath(slug) {
-    return `/work/${slug}`;
+    return `/gallery/${slug}`;
 }
 
 export function projectBySlug(slug) {

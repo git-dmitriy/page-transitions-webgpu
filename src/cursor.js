@@ -1,5 +1,7 @@
+import {controllerRef} from './app-context.js';
+
 const LERP = 0.2;
-const HOVER_SELECTOR = '.page-main .slot';
+const HOVER_SELECTOR = '.page-gallery .slot';
 
 export class Cursor {
     constructor() {
@@ -24,7 +26,13 @@ export class Cursor {
         this.tx = e.clientX;
         this.ty = e.clientY;
         const el = document.elementFromPoint(e.clientX, e.clientY);
-        const isHot = !!el?.closest?.(HOVER_SELECTOR);
+        let isHot = !!el?.closest?.(HOVER_SELECTOR);
+        if (!isHot) {
+            const controller = controllerRef.value;
+            if (controller?.current?.page === 'cloud' && controller.indexFloat) {
+                isHot = controller.indexFloat.hitAt(e.clientX, e.clientY) !== null;
+            }
+        }
         if (isHot !== this.hovering) {
             this.hovering = isHot;
             this.el.classList.toggle('is-hover', isHot);

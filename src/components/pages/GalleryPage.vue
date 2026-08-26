@@ -31,8 +31,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section ref="root" data-page="main" class="page page-main">
-    <h1 class="page-title">Work</h1>
+  <section ref="root" data-page="gallery" class="page page-gallery">
+    <h1 class="page-title">Gallery</h1>
     <div class="carousel">
       <a
           v-for="project in projects"

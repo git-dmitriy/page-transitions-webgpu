@@ -4,7 +4,8 @@ import AppNav from './components/layout/AppNav.vue';
 import AppFooter from './components/layout/AppFooter.vue';
 import Preloader from './components/layout/Preloader.vue';
 import CustomCursor from './components/layout/CustomCursor.vue';
-import WorkPage from './components/pages/WorkPage.vue';
+import GalleryPage from './components/pages/GalleryPage.vue';
+import CloudPage from './components/pages/CloudPage.vue';
 import CaseStudyPage from './components/pages/CaseStudyPage.vue';
 import {pageStack} from './app-context.js';
 
@@ -21,7 +22,8 @@ const stack = computed(() => pageStack.stack);
         class="page-host"
         :style="entry.inactive ? { pointerEvents: 'none' } : undefined"
     >
-      <WorkPage v-if="entry.page === 'main'"/>
+      <GalleryPage v-if="entry.page === 'gallery'"/>
+      <CloudPage v-else-if="entry.page === 'cloud'"/>
       <CaseStudyPage
           v-else-if="entry.page === 'inner'"
           :project="entry.project"

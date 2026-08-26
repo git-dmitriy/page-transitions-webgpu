@@ -1,14 +1,19 @@
 import gsap from "gsap";
 import {SplitText} from "gsap/SplitText";
-import {projects} from "./content/projects.js";
+import {projects, projectPath} from "./content/projects.js";
+import {IndexFloat} from "./core/indexFloat.js";
 import {MAIN_COUNT, SATELLITES_PER_IMAGE, mainIdx, satIdx} from "./gpu.js";
 
+import {IndexToInnerTransition} from "./transitions/indexToInner.js";
+import {IndexToMainTransition} from "./transitions/indexToMain.js";
+import {InnerToIndexTransition} from "./transitions/innerToIndex.js";
 import {InnerToMainTransition} from "./transitions/innerToMain.js";
+import {MainToIndexTransition} from "./transitions/mainToIndex.js";
 import {MainToInnerTransition} from "./transitions/mainToInner.js";
 
 gsap.registerPlugin(SplitText);
 
-// Carousel scroll tilt: the harder you scroll the Work page, the more the
+// Carousel scroll tilt: the harder you scroll the gallery page, the more the
 // planes rotate about their Y axis (perspective lean). Tilt is derived from the
 // carousel's per-frame velocity (px), clamped, and eased toward so it springs
 // back to flat when scrolling stops.
@@ -172,11 +177,12 @@ function animateChromeIn(selector, delay) {
 
 function buildRoutes() {
     const routes = {
-        "/": {page: "main", image: null},
+        "/": {page: "gallery", image: null},
+        "/cloud": {page: "cloud", image: null},
     };
 
     for (const project of projects) {
-        routes[`/work/${project.slug}`] = {
+        routes[`/gallery/${project.slug}`] = {
             page: "inner",
             project,
             image: project.index,
@@ -201,13 +207,18 @@ export class Controller {
         this.routes = ROUTES;
 
         this.transitions = {
-            "main->inner": new MainToInnerTransition(),
-            "inner->main": new InnerToMainTransition(),
+            "gallery->inner": new MainToInnerTransition(),
+            "inner->gallery": new InnerToMainTransition(),
+            "gallery->cloud": new MainToIndexTransition(),
+            "cloud->gallery": new IndexToMainTransition(),
+            "cloud->inner": new IndexToInnerTransition(),
+            "inner->cloud": new InnerToIndexTransition(),
         };
 
         this.current = null;
         this.mutating = false;
         this.carousel = null;
+        this.indexFloat = null;
 
         this.onClick = this.onClick.bind(this);
         this.onPopState = this.onPopState.bind(this);
@@ -225,6 +236,7 @@ export class Controller {
             this.carousel.tick();
             this._applyCarouselTilt(this.carousel.velocity);
         }
+        if (this.indexFloat) this.indexFloat.tick();
         if (this.current?.page === "inner" && !this.mutating) {
             this._applyInnerTilt(this.current.image, this.lenis.velocity ?? 0);
         }
@@ -306,7 +318,7 @@ export class Controller {
         const sec = this.app.querySelector(`[data-page="${state.page}"]`);
         if (!sec) return;
 
-        if (state.page === "main") {
+        if (state.page === "gallery") {
             const slots = sec.querySelectorAll(".slot");
             for (let i = 0; i < slots.length && i < MAIN_COUNT; i++) {
                 this._syncPlaneToEl(this.gpu.planes[mainIdx(i)], slots[i]);
@@ -330,7 +342,7 @@ export class Controller {
         const sec = this.app.querySelector(`[data-page="${state.page}"]`);
         if (!sec) return;
 
-        if (state.page === "main") {
+        if (state.page === "gallery") {
             document.body.style.height = "100vh";
             this.lenis.stop();
             this.lenis.scrollTo(0, {immediate: true, force: true});
@@ -346,15 +358,41 @@ export class Controller {
             this.lenis.resize();
             this.lenis.scrollTo(0, {immediate: true, force: true});
             this._syncPageSlots(state);
+            return;
         }
+
+        if (state.page === "cloud") {
+            document.body.style.height = "100vh";
+            this.lenis.stop();
+            this.lenis.scrollTo(0, {immediate: true, force: true});
+            if (!this.indexFloat) {
+                this.indexFloat = new IndexFloat(this.gpu);
+                this.indexFloat.prepare();
+            }
+            this.indexFloat.start();
+            this._bindIndexFloatSelect();
+        }
+    }
+
+    _bindIndexFloatSelect() {
+        if (!this.indexFloat) return;
+        this.indexFloat.onSelect = (image) => {
+            if (this.mutating) return;
+            const project = projects.find((p) => p.index === image);
+            if (project) this.navigate(projectPath(project.slug));
+        };
     }
 
     _leavePage(state) {
         if (!state) return;
-        if (state.page === "main" && this.carousel) {
+        if (state.page === "gallery" && this.carousel) {
             this.carousel.stop();
             this.carousel = null;
             for (let i = 0; i < MAIN_COUNT; i++) this.gpu.planes[mainIdx(i)].tilt = 0;
+        }
+        if (state.page === "cloud" && this.indexFloat) {
+            this.indexFloat.stop();
+            this.indexFloat = null;
         }
         if (state.page === "inner") {
             for (const plane of this._innerTiltPlanes(state.image)) plane.tiltX = 0;
@@ -365,7 +403,8 @@ export class Controller {
     }
 
     _setActiveNav(pageKey) {
-        const activeKey = pageKey === "main" ? "main" : null;
+        const activeKey =
+            pageKey === "gallery" ? "gallery" : pageKey === "cloud" ? "cloud" : null;
         const links = document.querySelectorAll("#nav a[data-nav-key]");
         for (const a of links) {
             if (activeKey && a.getAttribute("data-nav-key") === activeKey) {
@@ -377,14 +416,19 @@ export class Controller {
     }
 
     _snapLayout(state) {
-        if (state.page === "main") this.gpu.applyMainLayout();
+        if (state.page === "gallery") this.gpu.applyMainLayout();
+        else if (state.page === "cloud") this.gpu.applyIndexLayout();
         else if (state.page === "inner") this.gpu.applyInnerLayout(state.image);
     }
 
     _reapplyLayout() {
         if (!this.current || this.mutating) return;
-        if (this.current.page === "main" && this.carousel) {
+        if (this.current.page === "gallery" && this.carousel) {
             this.carousel.measure();
+            return;
+        }
+        if (this.current.page === "cloud" && this.indexFloat) {
+            this.indexFloat.measure();
             return;
         }
         this._snapLayout(this.current);
@@ -422,8 +466,13 @@ export class Controller {
         const fromEl = this.app.children[0];
         const toEl = this.app.children[1];
 
-        if (next.page === "main") {
+        if (next.page === "gallery") {
             this.carousel?.prepare();
+        }
+
+        if (next.page === "cloud") {
+            this.indexFloat = new IndexFloat(this.gpu);
+            this.indexFloat.prepare();
         }
 
         if (window.scrollY !== 0 || window.scrollX !== 0) {
@@ -439,6 +488,7 @@ export class Controller {
             gpu: this.gpu,
             fromImage: fromState.image,
             toImage: next.image,
+            indexFloat: this.indexFloat,
         };
         const txOut = transition.out(fromEl, toEl, ctx);
         const txIn = transition.in(fromEl, toEl, ctx);

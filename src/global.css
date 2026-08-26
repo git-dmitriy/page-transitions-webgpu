@@ -263,7 +263,7 @@ html.js #footer a {
     pointer-events: none;
 }
 
-.page-main .slot {
+.page-gallery .slot {
     position: fixed;
     top: 0;
     left: 0;
@@ -273,13 +273,13 @@ html.js #footer a {
     will-change: transform;
 }
 
-.page-main .slot figure {
+.page-gallery .slot figure {
     width: 100%;
     height: 100%;
     display: block;
 }
 
-.page-main .slot-caption {
+.page-gallery .slot-caption {
     position: absolute;
     top: 100%;
     left: 0;
@@ -292,23 +292,23 @@ html.js #footer a {
     pointer-events: none;
 }
 
-.page-main .slot-0 {
+.page-gallery .slot-0 {
     aspect-ratio: 4907 / 7360;
 }
 
-.page-main .slot-1 {
+.page-gallery .slot-1 {
     aspect-ratio: 6000 / 4000;
 }
 
-.page-main .slot-2 {
+.page-gallery .slot-2 {
     aspect-ratio: 3634 / 5998;
 }
 
-.page-main .slot-3 {
+.page-gallery .slot-3 {
     aspect-ratio: 3769 / 5025;
 }
 
-.page-main .slot-4 {
+.page-gallery .slot-4 {
     aspect-ratio: 6804 / 4104;
 }
 
