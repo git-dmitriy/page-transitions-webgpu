@@ -4,12 +4,13 @@ import {Carousel} from '../../carousel.js';
 import {mainIdx} from '../../gpu.js';
 import {projects, projectPath} from '../../content/projects.js';
 import {useSlotBinding} from '../../composables/useSlotBinding.js';
+import {canBindSlots} from '../../composables/canBindSlots.js';
 import {controllerRef} from '../../app-context.js';
 
 const gpu = inject('gpu');
 const root = ref(null);
 
-const {bindSlot} = useSlotBinding(gpu, mainIdx);
+const {bindSlot} = useSlotBinding(gpu, mainIdx, {canBind: canBindSlots});
 
 let carousel = null;
 

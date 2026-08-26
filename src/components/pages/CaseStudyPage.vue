@@ -3,6 +3,7 @@ import {inject} from 'vue';
 import {mainIdx, satIdx} from '../../gpu.js';
 import {INNER_X_OFFSETS_VW} from '../../core/layout.js';
 import {useSlotBinding} from '../../composables/useSlotBinding.js';
+import {canBindSlots} from '../../composables/canBindSlots.js';
 
 const props = defineProps({
   project: {
@@ -15,7 +16,7 @@ const gpu = inject('gpu');
 const {bindSlot: bindPlane} = useSlotBinding(gpu, (i) => i);
 
 function bindSlot(slotIndex, el) {
-  if (!el) return;
+  if (!el || !canBindSlots()) return;
   const image = props.project.index;
   const planeIndex =
       slotIndex === 0 ? mainIdx(image) : satIdx(image, slotIndex - 1);

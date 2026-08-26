@@ -1,6 +1,6 @@
-export function useSlotBinding(gpu, planeIndexFn) {
+export function useSlotBinding(gpu, planeIndexFn, {canBind = () => true} = {}) {
     function bindSlot(index, el) {
-        if (!el) return;
+        if (!el || !canBind()) return;
         const plane = gpu.planes[planeIndexFn(index)];
         plane.trackedEl = el;
         const rect = el.getBoundingClientRect();

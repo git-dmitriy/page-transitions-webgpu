@@ -293,6 +293,39 @@ export class Controller {
         animateChromeIn("#footer a", INTRO_FOOTER_DELAY);
     }
 
+    _syncPlaneToEl(plane, el) {
+        plane.trackedEl = el;
+        const rect = el.getBoundingClientRect();
+        plane.bounds.x = rect.left;
+        plane.bounds.y = rect.top;
+        plane.bounds.w = rect.width;
+        plane.bounds.h = rect.height;
+    }
+
+    _syncPageSlots(state) {
+        const sec = this.app.querySelector(`[data-page="${state.page}"]`);
+        if (!sec) return;
+
+        if (state.page === "main") {
+            const slots = sec.querySelectorAll(".slot");
+            for (let i = 0; i < slots.length && i < MAIN_COUNT; i++) {
+                this._syncPlaneToEl(this.gpu.planes[mainIdx(i)], slots[i]);
+            }
+            return;
+        }
+
+        if (state.page === "inner") {
+            const slots = sec.querySelectorAll(".stack .slot");
+            if (!slots.length) return;
+            this._syncPlaneToEl(this.gpu.planes[mainIdx(state.image)], slots[0]);
+            for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
+                const slot = slots[j + 1];
+                if (!slot) continue;
+                this._syncPlaneToEl(this.gpu.planes[satIdx(state.image, j)], slot);
+            }
+        }
+    }
+
     _enterPage(state) {
         const sec = this.app.querySelector(`[data-page="${state.page}"]`);
         if (!sec) return;
@@ -302,6 +335,7 @@ export class Controller {
             this.lenis.stop();
             this.lenis.scrollTo(0, {immediate: true, force: true});
             this.carousel?.start();
+            this._syncPageSlots(state);
             return;
         }
 
@@ -311,6 +345,7 @@ export class Controller {
             this.lenis.start();
             this.lenis.resize();
             this.lenis.scrollTo(0, {immediate: true, force: true});
+            this._syncPageSlots(state);
         }
     }
 
@@ -368,6 +403,7 @@ export class Controller {
         const fromState = this.current;
         const toState = {path, ...next};
         const transition = this._resolveTransition(fromState.page, next.page);
+        if (!transition) return;
 
         this.mutating = true;
         if (target !== "back") history.pushState({path}, "", path);
