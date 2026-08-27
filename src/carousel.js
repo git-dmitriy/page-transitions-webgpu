@@ -20,6 +20,7 @@ export class Carousel {
     }
 
     start() {
+        this.stop();
         this.prepare();
         window.addEventListener('wheel', this.onWheel, {
             capture: true,

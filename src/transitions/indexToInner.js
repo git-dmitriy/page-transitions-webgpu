@@ -4,7 +4,7 @@ import {
     mainIdx,
     satIdx,
 } from '../gpu.js';
-import {getInnerTargets} from '../core/layout.js';
+import {getInnerPrimaryTarget, getInnerSatelliteTargets} from '../core/layout.js';
 import {
     tweenBounds,
     tweenOpacity,
@@ -15,9 +15,10 @@ import {
 export class IndexToInnerTransition {
     async out(_from, toEl, ctx) {
         const {gpu, toImage} = ctx;
-        const innerRects = getInnerTargets(toEl);
+        const target = getInnerPrimaryTarget(toEl);
+        if (!target) return;
         const tweens = [];
-        tweens.push(tweenBounds(gpu.planes[mainIdx(toImage)], innerRects[0]));
+        tweens.push(tweenBounds(gpu.planes[mainIdx(toImage)], target));
         for (let i = 0; i < MAIN_COUNT; i++) {
             if (i === toImage) continue;
             tweens.push(
@@ -32,11 +33,13 @@ export class IndexToInnerTransition {
 
     async in(_from, toEl, ctx) {
         const {gpu, toImage} = ctx;
-        const innerRects = getInnerTargets(toEl);
+        const satTargets = getInnerSatelliteTargets(toEl);
         const fades = [];
         for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
+            const slot = satTargets[j];
+            if (!slot) continue;
             const sat = gpu.planes[satIdx(toImage, j)];
-            sat.bounds = {...innerRects[j + 1]};
+            sat.bounds = {...slot};
             sat.opacity = 0;
             fades.push(
                 tweenOpacity(sat, 1, {

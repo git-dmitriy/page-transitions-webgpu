@@ -35,6 +35,7 @@ const IMAGES = [
 ];
 
 export const MAIN_COUNT = IMAGES.length; // 5
+export {IMAGES};
 export const SATELLITES_PER_IMAGE = 4; // 4 satellites per image
 export const SATELLITE_COUNT = MAIN_COUNT * SATELLITES_PER_IMAGE; // 20
 export const TOTAL_PLANES = MAIN_COUNT + SATELLITE_COUNT; // 25

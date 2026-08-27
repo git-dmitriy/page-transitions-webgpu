@@ -1,6 +1,10 @@
 import gsap from "gsap";
 import {SplitText} from "gsap/SplitText";
 import {projects, projectPath} from "./content/projects.js";
+import {
+    CASE_STUDY_PRIMARY_SLOT,
+    innerSatelliteSlotIndices,
+} from "./case-study/index.js";
 import {IndexFloat} from "./core/indexFloat.js";
 import {MAIN_COUNT, SATELLITES_PER_IMAGE, mainIdx, satIdx} from "./gpu.js";
 
@@ -21,11 +25,8 @@ const TILT_RAD_PER_PX = 0.005;
 const TILT_MAX_RAD = 0.05; // ~11 degrees
 const TILT_LERP = 0.09;
 
-// Inner-page scroll tilt: scrolling the detail stack tilts its planes about the
-// X axis (a forward/back lean), driven by Lenis's per-frame velocity, clamped,
-// and eased so it springs back to flat when scrolling stops.
 const INNER_TILT_RAD_PER_PX = 0.003;
-const INNER_TILT_MAX_RAD = 0.05; // ~7 degrees
+const INNER_TILT_MAX_RAD = 0.05;
 const INNER_TILT_LERP = 0.09;
 
 const TITLE_IN_DURATION = 0.7;
@@ -220,6 +221,8 @@ export class Controller {
         this.carousel = null;
         this.indexFloat = null;
 
+        this.caseStudy = null;
+
         this.onClick = this.onClick.bind(this);
         this.onPopState = this.onPopState.bind(this);
     }
@@ -237,18 +240,14 @@ export class Controller {
             this._applyCarouselTilt(this.carousel.velocity);
         }
         if (this.indexFloat) this.indexFloat.tick();
-        if (this.current?.page === "inner" && !this.mutating) {
-            this._applyInnerTilt(this.current.image, this.lenis.velocity ?? 0);
-        }
-    }
-
-    _applyCarouselTilt(velocity) {
-        let target = velocity * TILT_RAD_PER_PX;
-        if (target > TILT_MAX_RAD) target = TILT_MAX_RAD;
-        else if (target < -TILT_MAX_RAD) target = -TILT_MAX_RAD;
-        for (let i = 0; i < MAIN_COUNT; i++) {
-            const plane = this.gpu.planes[mainIdx(i)];
-            plane.tilt += (target - plane.tilt) * TILT_LERP;
+        if (this.caseStudy && this.current?.page === "inner") {
+            this.caseStudy.tick();
+            if (!this.mutating) {
+                this._applyInnerTilt(
+                    this.current.image,
+                    this.caseStudy.carousel.velocity,
+                );
+            }
         }
     }
 
@@ -266,6 +265,16 @@ export class Controller {
         else if (target < -INNER_TILT_MAX_RAD) target = -INNER_TILT_MAX_RAD;
         for (const plane of this._innerTiltPlanes(image)) {
             plane.tiltX += (target - plane.tiltX) * INNER_TILT_LERP;
+        }
+    }
+
+    _applyCarouselTilt(velocity) {
+        let target = velocity * TILT_RAD_PER_PX;
+        if (target > TILT_MAX_RAD) target = TILT_MAX_RAD;
+        else if (target < -TILT_MAX_RAD) target = -TILT_MAX_RAD;
+        for (let i = 0; i < MAIN_COUNT; i++) {
+            const plane = this.gpu.planes[mainIdx(i)];
+            plane.tilt += (target - plane.tilt) * TILT_LERP;
         }
     }
 
@@ -327,11 +336,15 @@ export class Controller {
         }
 
         if (state.page === "inner") {
-            const slots = sec.querySelectorAll(".stack .slot");
+            const slots = sec.querySelectorAll(".case-scroll .slot");
             if (!slots.length) return;
-            this._syncPlaneToEl(this.gpu.planes[mainIdx(state.image)], slots[0]);
+            this._syncPlaneToEl(
+                this.gpu.planes[mainIdx(state.image)],
+                slots[CASE_STUDY_PRIMARY_SLOT],
+            );
+            const satSlots = innerSatelliteSlotIndices();
             for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
-                const slot = slots[j + 1];
+                const slot = slots[satSlots[j]];
                 if (!slot) continue;
                 this._syncPlaneToEl(this.gpu.planes[satIdx(state.image, j)], slot);
             }
@@ -352,11 +365,11 @@ export class Controller {
         }
 
         if (state.page === "inner") {
-            const stack = sec.querySelector(".stack");
-            document.body.style.height = `${stack.offsetHeight}px`;
-            this.lenis.start();
-            this.lenis.resize();
+            document.body.style.height = "100vh";
+            this.lenis.stop();
             this.lenis.scrollTo(0, {immediate: true, force: true});
+            this._prepareInnerTransition();
+            this.caseStudy?.start();
             this._syncPageSlots(state);
             return;
         }
@@ -395,6 +408,7 @@ export class Controller {
             this.indexFloat = null;
         }
         if (state.page === "inner") {
+            this.caseStudy?.stop();
             for (const plane of this._innerTiltPlanes(state.image)) plane.tiltX = 0;
         }
         for (const plane of this.gpu.planes) {
@@ -431,11 +445,28 @@ export class Controller {
             this.indexFloat.measure();
             return;
         }
+        if (this.current.page === "inner" && this.caseStudy) {
+            this.caseStudy.carousel.measure();
+            return;
+        }
         this._snapLayout(this.current);
     }
 
     _resolveTransition(from, to) {
         return this.transitions[`${from}->${to}`];
+    }
+
+    _waitLayout() {
+        return new Promise((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
+        });
+    }
+
+    _prepareInnerTransition() {
+        const carousel = this.caseStudy?.carousel;
+        if (!carousel) return;
+        carousel.resetScroll();
+        carousel.prepare();
     }
 
     async navigate(path, target = null) {
@@ -458,6 +489,11 @@ export class Controller {
         const factOut = animateFactOut(fromElNow);
         const captionsOut = animateCaptionsOut(fromElNow);
 
+        if (fromState.page === "inner" && this.caseStudy) {
+            this.caseStudy.stop();
+            this.caseStudy.prepGpuPlane(this.gpu, fromState.image);
+        }
+
         this._leavePage(fromState);
 
         await this.pageStack.pushTransition(path, next);
@@ -473,6 +509,11 @@ export class Controller {
         if (next.page === "cloud") {
             this.indexFloat = new IndexFloat(this.gpu);
             this.indexFloat.prepare();
+        }
+
+        if (next.page === "inner") {
+            this._prepareInnerTransition();
+            await this._waitLayout();
         }
 
         if (window.scrollY !== 0 || window.scrollX !== 0) {

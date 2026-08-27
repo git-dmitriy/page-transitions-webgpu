@@ -17,23 +17,22 @@ export class InnerToMainTransition {
         const {gpu, fromImage} = ctx;
         const mainRects = getMainTargets(toEl);
         const target = mainRects[fromImage];
+        if (!target) return;
         const tweens = [];
         tweens.push(tweenBounds(gpu.planes[mainIdx(fromImage)], target));
         for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
             const sat = gpu.planes[satIdx(fromImage, j)];
-            const reversedDelay = (SATELLITES_PER_IMAGE - 1 - j) * 0.05;
             tweens.push(
                 tweenOpacity(sat, 0, {
                     duration: DUR_FADE * 0.7,
                     ease: EASE_FADE_OUT,
-                    delay: reversedDelay,
+                    delay: (SATELLITES_PER_IMAGE - 1 - j) * 0.05,
                 }),
             );
         }
         await Promise.all(tweens);
     }
 
-    // The other 4 main planes fade in at their horizontal carousel slots.
     async in(_from, toEl, ctx) {
         const {gpu, fromImage} = ctx;
         const mainRects = getMainTargets(toEl);
