@@ -10,6 +10,7 @@ export class VerticalCarousel {
         this.stepY = 0;
         this.periodY = 0;
         this.velocity = 0;
+        this.active = false;
         this.onWheel = this.onWheel.bind(this);
     }
 
@@ -17,6 +18,12 @@ export class VerticalCarousel {
         this.scrollY = 0;
         this.targetScrollY = 0;
         this.velocity = 0;
+    }
+
+    settle() {
+        this.targetScrollY = this.scrollY;
+        this.velocity = 0;
+        this.applyTransforms();
     }
 
     prepare() {
@@ -27,8 +34,15 @@ export class VerticalCarousel {
     }
 
     start() {
-        this.stop();
         this.prepare();
+        this.resume();
+    }
+
+    resume() {
+        this.stop();
+        this.measure();
+        this.applyTransforms();
+        this.active = true;
         window.addEventListener("wheel", this.onWheel, {
             capture: true,
             passive: false,
@@ -36,6 +50,7 @@ export class VerticalCarousel {
     }
 
     stop() {
+        this.active = false;
         window.removeEventListener("wheel", this.onWheel, {capture: true});
     }
 
@@ -76,6 +91,7 @@ export class VerticalCarousel {
     }
 
     tick() {
+        if (!this.active) return;
         const prev = this.scrollY;
         this.scrollY += (this.targetScrollY - this.scrollY) * LERP;
         this.velocity = this.scrollY - prev;

@@ -18,10 +18,12 @@ export function createCaseStudy({root, gpu, project}) {
 
     let active = false;
 
-    detail.onClose = () => {
+    function resumeCarousel() {
         if (!active) return;
-        carousel.start();
-    };
+        carousel.resume();
+    }
+
+    detail.onClose = resumeCarousel;
 
     carousel.prepare();
 
@@ -33,6 +35,7 @@ export function createCaseStudy({root, gpu, project}) {
         const open = () => {
             if (detail.state !== "closed") return;
             carousel.stop();
+            carousel.settle();
             detail.open(slotIndex);
         };
         slots[i].addEventListener("click", open);
@@ -44,7 +47,10 @@ export function createCaseStudy({root, gpu, project}) {
         });
     }
 
-    const onResize = () => carousel.measure();
+    const onResize = () => {
+        carousel.measure();
+        if (detail.state === "closed") carousel.applyTransforms();
+    };
     window.addEventListener("resize", onResize);
 
     return {
@@ -52,10 +58,7 @@ export function createCaseStudy({root, gpu, project}) {
         detail,
         start() {
             active = true;
-            detail.onClose = () => {
-                if (!active) return;
-                carousel.start();
-            };
+            detail.onClose = resumeCarousel;
             carousel.start();
         },
         stop() {

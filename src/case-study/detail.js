@@ -72,6 +72,20 @@ export class CaseStudyDetail {
         }
     }
 
+    snapPlanesToSlots() {
+        for (let i = 0; i < this.slotCount(); i++) {
+            const plane = this.planeForSlot(i);
+            const slot = this.slotEl(i);
+            if (!plane || !slot) continue;
+            const r = slot.getBoundingClientRect();
+            plane.bounds.x = r.left;
+            plane.bounds.y = r.top;
+            plane.bounds.w = r.width;
+            plane.bounds.h = r.height;
+            plane.bounds.z = 0;
+        }
+    }
+
     detachPlanes() {
         for (let i = 0; i < this.slotCount(); i++) {
             const plane = this.planeForSlot(i);
@@ -213,6 +227,7 @@ export class CaseStudyDetail {
     }
 
     rebindSlots() {
+        this.snapPlanesToSlots();
         for (let i = 0; i < this.slotCount(); i++) {
             const plane = this.planeForSlot(i);
             const slot = this.slotEl(i);
