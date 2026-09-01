@@ -118,9 +118,9 @@ export class IndexFloat {
         }
     }
 
-    start() {
+    start({project = true} = {}) {
         this._running = true;
-        this.applyProjection();
+        if (project) this.applyProjection();
         window.addEventListener("pointerdown", this._onDown);
         window.addEventListener("pointermove", this._onMove);
         window.addEventListener("pointerup", this._onUp);

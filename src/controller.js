@@ -351,7 +351,7 @@ export class Controller {
         }
     }
 
-    _enterPage(state) {
+    _enterPage(state, {projectCloud = true} = {}) {
         const sec = this.app.querySelector(`[data-page="${state.page}"]`);
         if (!sec) return;
 
@@ -382,7 +382,7 @@ export class Controller {
                 this.indexFloat = new IndexFloat(this.gpu);
                 this.indexFloat.prepare();
             }
-            this.indexFloat.start();
+            this.indexFloat.start({project: projectCloud});
             this._bindIndexFloatSelect();
         }
     }
@@ -408,8 +408,8 @@ export class Controller {
             this.indexFloat = null;
         }
         if (state.page === "inner") {
-            this.caseStudy?.stop();
             for (const plane of this._innerTiltPlanes(state.image)) plane.tiltX = 0;
+            this.caseStudy?.deactivate();
         }
         for (const plane of this.gpu.planes) {
             plane.trackedEl = null;
@@ -490,8 +490,7 @@ export class Controller {
         const captionsOut = animateCaptionsOut(fromElNow);
 
         if (fromState.page === "inner" && this.caseStudy) {
-            this.caseStudy.stop();
-            this.caseStudy.prepGpuPlane(this.gpu, fromState.image);
+            this.caseStudy.prepareLeaveTransition(this.gpu, fromState.image);
         }
 
         this._leavePage(fromState);
@@ -548,7 +547,7 @@ export class Controller {
         await this.pageStack.dropOutgoing();
         this.current = toState;
         this._snapLayout(toState);
-        this._enterPage(toState);
+        this._enterPage(toState, {projectCloud: false});
         this.mutating = false;
     }
 

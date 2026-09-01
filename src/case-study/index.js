@@ -1,9 +1,11 @@
 import {VerticalCarousel} from "./verticalCarousel.js";
 import {CaseStudyDetail} from "./detail.js";
-import {mainIdx, satIdx} from "../gpu.js";
+import {mainIdx, satIdx, SATELLITES_PER_IMAGE} from "../gpu.js";
 import {CASE_STUDY_PRIMARY_SLOT, CASE_STUDY_SLOT_COUNT} from "./slots.js";
 
-export {CASE_STUDY_SLOT_COUNT, CASE_STUDY_PRIMARY_SLOT, innerSatelliteSlotIndices, planeIndexForInnerSlot} from "./slots.js";
+export {
+    CASE_STUDY_SLOT_COUNT, CASE_STUDY_PRIMARY_SLOT, innerSatelliteSlotIndices, planeIndexForInnerSlot
+} from "./slots.js";
 
 export function createCaseStudy({root, gpu, project}) {
     const scrollRoot = root.querySelector(".case-scroll");
@@ -53,6 +55,33 @@ export function createCaseStudy({root, gpu, project}) {
     };
     window.addEventListener("resize", onResize);
 
+    function detachProjectPlanes(gpuRef, imageIndex) {
+        const main = gpuRef.planes[mainIdx(imageIndex)];
+        if (main) main.trackedEl = null;
+        for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
+            const sat = gpuRef.planes[satIdx(imageIndex, j)];
+            if (sat) sat.trackedEl = null;
+        }
+    }
+
+    function hideSatellites(gpuRef, imageIndex) {
+        for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
+            const sat = gpuRef.planes[satIdx(imageIndex, j)];
+            if (!sat) continue;
+            sat.trackedEl = null;
+            sat.opacity = 0;
+        }
+    }
+
+    function primarySlotRect() {
+        carousel.settle();
+        carousel.applyTransforms();
+        const slot = root.querySelectorAll(".case-scroll .slot")[CASE_STUDY_PRIMARY_SLOT];
+        if (!slot) return null;
+        const r = slot.getBoundingClientRect();
+        return {x: r.left, y: r.top, w: r.width, h: r.height, z: 0};
+    }
+
     return {
         carousel,
         detail,
@@ -69,24 +98,38 @@ export function createCaseStudy({root, gpu, project}) {
                 detail.forceClose();
             }
         },
-        tick() {
-            carousel.tick();
+        deactivate() {
+            active = false;
+            detail.onClose = null;
+            carousel.stop();
         },
-        prepGpuPlane(gpuRef, imageIndex) {
-            carousel.resetScroll();
+        prepareLeaveTransition(gpuRef, imageIndex) {
+            active = false;
+            detail.onClose = null;
+            carousel.stop();
+            carousel.settle();
             carousel.applyTransforms();
-            const slots = root.querySelectorAll(".case-scroll .slot");
-            const slot = slots[CASE_STUDY_PRIMARY_SLOT];
-            if (!slot) return;
+
+            const hero = detail.state !== "closed" ? detail.abortForLeave() : null;
+            detachProjectPlanes(gpuRef, imageIndex);
+            hideSatellites(gpuRef, imageIndex);
+
             const plane = gpuRef.planes[mainIdx(imageIndex)];
-            const r = slot.getBoundingClientRect();
-            plane.bounds.x = r.left;
-            plane.bounds.y = r.top;
-            plane.bounds.w = r.width;
-            plane.bounds.h = r.height;
+            if (!plane) return;
+
+            const from = hero ?? primarySlotRect();
+            if (!from) return;
+
+            plane.bounds.x = from.x;
+            plane.bounds.y = from.y;
+            plane.bounds.w = from.w;
+            plane.bounds.h = from.h;
             plane.bounds.z = 0;
             plane.opacity = 1;
             plane.trackedEl = null;
+        },
+        tick() {
+            carousel.tick();
         },
         destroy() {
             active = false;

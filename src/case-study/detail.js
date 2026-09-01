@@ -211,6 +211,34 @@ export class CaseStudyDetail {
         window.removeEventListener("keydown", this.onKeyDown);
     }
 
+    abortForLeave() {
+        if (this.state === "closed") return null;
+
+        const hero =
+            this.activePlane != null
+                ? {
+                    x: this.activePlane.bounds.x,
+                    y: this.activePlane.bounds.y,
+                    w: this.activePlane.bounds.w,
+                    h: this.activePlane.bounds.h,
+                    z: 0,
+                }
+                : this.leftHalfRect();
+
+        gsap.killTweensOf(this.copyEls);
+        gsap.killTweensOf(this.panel);
+        this.killPlaneTweens();
+        this.running = null;
+        gsap.set(this.panel, {display: "none"});
+        gsap.set(this.copyEls, {clearProps: "opacity,visibility"});
+        this.detachPlanes();
+        this.activeSlotIndex = null;
+        this.activePlane = null;
+        this.state = "closed";
+        window.removeEventListener("keydown", this.onKeyDown);
+        return hero;
+    }
+
     async reset({notify = true} = {}) {
         this.restorePlanes();
         gsap.set(this.panel, {display: "none"});
@@ -242,6 +270,7 @@ export class CaseStudyDetail {
     destroy() {
         this.backBtn?.removeEventListener("click", this.onBackClick);
         this.onClose = null;
-        this.forceClose();
+        if (this.state !== "closed") this.forceClose();
+        else window.removeEventListener("keydown", this.onKeyDown);
     }
 }
