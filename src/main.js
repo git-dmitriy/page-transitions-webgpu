@@ -6,8 +6,11 @@ import {Controller} from './controller.js';
 import {Cursor} from './cursor.js';
 import {Preloader} from './preloader.js';
 import {controllerRef, pageStack} from './app-context.js';
+import {initTheme} from './composables/useTheme.js';
 
 async function start() {
+    initTheme();
+
     const lenis = new Lenis({
         smoothWheel: true,
         syncTouch: true,

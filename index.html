@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="no-js">
+<html lang="en" class="no-js" data-theme="light">
 
 <head>
     <meta charset="UTF-8"/>
@@ -10,6 +10,13 @@
     <link rel="stylesheet" type="text/css" href="src/global.css"/>
     <script>
         document.documentElement.className = 'js';
+        try {
+            var t = localStorage.getItem('theme');
+            if (t === 'dark' || t === 'light') {
+                document.documentElement.setAttribute('data-theme', t);
+            }
+        } catch (e) {
+        }
     </script>
 </head>
 
@@ -17,5 +24,4 @@
 <div id="root"></div>
 <script type="module" src="/src/main.js"></script>
 </body>
-
 </html>

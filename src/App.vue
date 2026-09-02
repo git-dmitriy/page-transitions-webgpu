@@ -4,6 +4,7 @@ import AppNav from './components/layout/AppNav.vue';
 import AppFooter from './components/layout/AppFooter.vue';
 import Preloader from './components/layout/Preloader.vue';
 import CustomCursor from './components/layout/CustomCursor.vue';
+import ThemeToggle from './components/layout/ThemeToggle.vue';
 import GalleryPage from './components/pages/GalleryPage.vue';
 import CloudPage from './components/pages/CloudPage.vue';
 import CaseStudyPage from './components/pages/CaseStudyPage.vue';
@@ -15,6 +16,7 @@ const stack = computed(() => pageStack.stack);
 <template>
   <Preloader/>
   <AppNav/>
+  <ThemeToggle/>
   <main id="app">
     <div
         v-for="entry in stack"
