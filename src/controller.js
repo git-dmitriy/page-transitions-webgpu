@@ -222,6 +222,7 @@ export class Controller {
         this.indexFloat = null;
 
         this.caseStudy = null;
+        this.pendingNav = null;
 
         this.onClick = this.onClick.bind(this);
         this.onPopState = this.onPopState.bind(this);
@@ -470,7 +471,10 @@ export class Controller {
     }
 
     async navigate(path, target = null) {
-        if (this.mutating) return;
+        if (this.mutating) {
+            this.pendingNav = {path, target};
+            return;
+        }
         if (path === this.current?.path) return;
         const next = this.routes[path];
         if (!next) return;
@@ -481,6 +485,7 @@ export class Controller {
         if (!transition) return;
 
         this.mutating = true;
+        this.pendingNav = null;
         if (target !== "back") history.pushState({path}, "", path);
         this._setActiveNav(next.page);
 
@@ -490,6 +495,7 @@ export class Controller {
         const captionsOut = animateCaptionsOut(fromElNow);
 
         if (fromState.page === "inner" && this.caseStudy) {
+            await this.caseStudy.settleDetail();
             this.caseStudy.prepareLeaveTransition(this.gpu, fromState.image);
         }
 
@@ -549,6 +555,12 @@ export class Controller {
         this._snapLayout(toState);
         this._enterPage(toState, {projectCloud: false});
         this.mutating = false;
+
+        const pending = this.pendingNav;
+        this.pendingNav = null;
+        if (pending && pending.path !== this.current?.path) {
+            await this.navigate(pending.path, pending.target);
+        }
     }
 
     onClick(e) {

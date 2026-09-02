@@ -128,6 +128,9 @@ export function createCaseStudy({root, gpu, project}) {
             plane.opacity = 1;
             plane.trackedEl = null;
         },
+        async settleDetail() {
+            await detail.waitUntilClosed();
+        },
         tick() {
             carousel.tick();
         },

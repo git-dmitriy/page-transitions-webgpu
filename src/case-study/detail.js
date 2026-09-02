@@ -1,7 +1,7 @@
 import gsap from "gsap";
 import {SATELLITES_PER_IMAGE} from "../gpu.js";
 import {planeIndexForInnerSlot} from "./slots.js";
-import {DUR_FADE, EASE_FADE, tweenBounds, tweenOpacity} from "../transitions/constants.js";
+import {DUR_FADE, DUR_MORPH, EASE_FADE, EASE_MORPH} from "../transitions/constants.js";
 
 export class CaseStudyDetail {
     constructor({gpu, imageIndex, root, mainIdx, satIdx}) {
@@ -13,7 +13,9 @@ export class CaseStudyDetail {
         this.state = "closed";
         this.activeSlotIndex = null;
         this.activePlane = null;
-        this.running = null;
+        this.tl = null;
+        this._done = null;
+        this._resolveDone = null;
 
         this.panel = root.querySelector(".case-detail");
         this.backBtn = root.querySelector(".case-detail__back");
@@ -64,14 +66,6 @@ export class CaseStudyDetail {
         }
     }
 
-    restorePlanes() {
-        this.killPlaneTweens();
-        for (let i = 0; i < this.slotCount(); i++) {
-            const plane = this.planeForSlot(i);
-            if (plane) plane.opacity = 1;
-        }
-    }
-
     snapPlanesToSlots() {
         for (let i = 0; i < this.slotCount(); i++) {
             const plane = this.planeForSlot(i);
@@ -93,6 +87,44 @@ export class CaseStudyDetail {
         }
     }
 
+    rebindSlots() {
+        this.snapPlanesToSlots();
+        for (let i = 0; i < this.slotCount(); i++) {
+            const plane = this.planeForSlot(i);
+            const slot = this.slotEl(i);
+            if (plane && slot) {
+                plane.opacity = 1;
+                plane.trackedEl = slot;
+            }
+        }
+    }
+
+    _trackDone() {
+        this._done = new Promise((resolve) => {
+            this._resolveDone = resolve;
+        });
+        return this._done;
+    }
+
+    _finishDone() {
+        this._resolveDone?.();
+        this._resolveDone = null;
+        this._done = null;
+    }
+
+    finishClosed({notify = true} = {}) {
+        this.tl = null;
+        gsap.set(this.panel, {display: "none"});
+        gsap.set(this.copyEls, {clearProps: "opacity,visibility"});
+        this.rebindSlots();
+        this.activeSlotIndex = null;
+        this.activePlane = null;
+        this.state = "closed";
+        window.removeEventListener("keydown", this.onKeyDown);
+        this._finishDone();
+        if (notify) this.onClose?.();
+    }
+
     async open(slotIndex) {
         if (this.state !== "closed") return;
         this.state = "opening";
@@ -106,56 +138,83 @@ export class CaseStudyDetail {
 
         this.detachPlanes();
 
+        const target = this.leftHalfRect();
+        if (target.z != null) this.activePlane.bounds.z = target.z;
+
         gsap.set(this.panel, {display: "block", autoAlpha: 0});
         gsap.set(this.copyEls, {autoAlpha: 0});
 
-        const tweens = [
-            tweenBounds(this.activePlane, this.leftHalfRect()),
-            gsap.to(this.panel, {
-                autoAlpha: 1,
-                duration: 0.4,
-                ease: "power2.out",
-                delay: 0.4,
-            }),
-            gsap.to(this.copyEls, {
-                autoAlpha: 1,
-                duration: 0.8,
-                stagger: 0.08,
-                ease: "power3.out",
-                delay: 0.55,
-            }),
-        ];
+        window.addEventListener("keydown", this.onKeyDown);
+
+        const done = this._trackDone();
+
+        this.tl = gsap.timeline({
+            onComplete: () => {
+                this.state = "open";
+                this.tl = null;
+                this._finishDone();
+            },
+        });
+
+        this.tl.to(
+            this.activePlane.bounds,
+            {
+                x: target.x,
+                y: target.y,
+                w: target.w,
+                h: target.h,
+                duration: DUR_MORPH,
+                ease: EASE_MORPH,
+            },
+            0,
+        );
 
         for (let i = 0; i < this.slotCount(); i++) {
             const plane = this.planeForSlot(i);
             if (plane === this.activePlane) continue;
-            tweens.push(tweenOpacity(plane, 0, {duration: DUR_FADE, ease: EASE_FADE}));
+            this.tl.to(
+                plane,
+                {opacity: 0, duration: DUR_FADE, ease: EASE_FADE},
+                0,
+            );
         }
 
-        window.addEventListener("keydown", this.onKeyDown);
+        this.tl.to(
+            this.panel,
+            {autoAlpha: 1, duration: 0.4, ease: "power2.out"},
+            0.4,
+        );
+        this.tl.to(
+            this.copyEls,
+            {
+                autoAlpha: 1,
+                duration: 0.8,
+                stagger: 0.08,
+                ease: "power3.out",
+            },
+            0.55,
+        );
 
-        this.running = Promise.all(tweens);
-        try {
-            await this.running;
-            this.state = "open";
-        } catch {
-            await this.reset();
-        } finally {
-            this.running = null;
-        }
+        await done;
     }
 
     async close({notify = true} = {}) {
-        if (this.state === "opening" || this.state === "closing") {
-            gsap.killTweensOf(this.copyEls);
-            gsap.killTweensOf(this.panel);
-            this.running = null;
-            await this.reset({notify});
-            return;
+        if (this.state === "closing") return this._done ?? Promise.resolve();
+
+        if (this.state === "opening" && this.tl) {
+            this.state = "closing";
+            const done = this._done ?? this._trackDone();
+            this.tl.eventCallback("onReverseComplete", () => {
+                this.finishClosed({notify});
+            });
+            this.tl.reverse();
+            return done;
         }
 
         if (this.state !== "open") return;
+
         this.state = "closing";
+        const done = this._trackDone();
 
         const slot = this.slotEl(this.activeSlotIndex);
         const rect = slot.getBoundingClientRect();
@@ -166,42 +225,75 @@ export class CaseStudyDetail {
             h: rect.height,
             z: 0,
         };
+        if (this.activePlane) this.activePlane.bounds.z = 0;
 
-        const tweens = [
-            tweenBounds(this.activePlane, target),
-            gsap.to(this.copyEls, {
+        this.tl = gsap.timeline({
+            onComplete: () => {
+                this.finishClosed({notify});
+            },
+        });
+
+        this.tl.to(
+            this.activePlane.bounds,
+            {
+                x: target.x,
+                y: target.y,
+                w: target.w,
+                h: target.h,
+                duration: DUR_MORPH,
+                ease: EASE_MORPH,
+            },
+            0,
+        );
+
+        this.tl.to(
+            this.copyEls,
+            {
                 autoAlpha: 0,
                 duration: 0.35,
                 stagger: 0.04,
                 ease: "power1.out",
-            }),
-            gsap.to(this.panel, {
-                autoAlpha: 0,
-                duration: 0.35,
-                ease: "power2.in",
-            }),
-        ];
+            },
+            0,
+        );
+        this.tl.to(
+            this.panel,
+            {autoAlpha: 0, duration: 0.35, ease: "power2.in"},
+            0,
+        );
 
         for (let i = 0; i < this.slotCount(); i++) {
             if (i === this.activeSlotIndex) continue;
             const plane = this.planeForSlot(i);
-            tweens.push(tweenOpacity(plane, 1, {delay: 0.35, duration: DUR_FADE, ease: EASE_FADE}));
+            this.tl.to(
+                plane,
+                {
+                    opacity: 1,
+                    duration: DUR_FADE,
+                    ease: EASE_FADE,
+                    delay: 0.35,
+                },
+                0,
+            );
         }
 
-        this.running = Promise.all(tweens);
-        try {
-            await this.running;
-        } finally {
-            this.running = null;
-            await this.reset({notify});
-        }
+        return done;
+    }
+
+    async waitUntilClosed() {
+        if (this.state === "closed") return;
+        if (this.state === "closing") return this._done ?? Promise.resolve();
+        await this.close({notify: false});
     }
 
     forceClose() {
+        if (this.tl) {
+            this.tl.kill();
+            this.tl = null;
+        }
         gsap.killTweensOf(this.copyEls);
         gsap.killTweensOf(this.panel);
-        this.running = null;
-        this.restorePlanes();
+        this.killPlaneTweens();
         gsap.set(this.panel, {display: "none"});
         gsap.set(this.copyEls, {clearProps: "opacity,visibility"});
         this.rebindSlots();
@@ -209,6 +301,7 @@ export class CaseStudyDetail {
         this.activePlane = null;
         this.state = "closed";
         window.removeEventListener("keydown", this.onKeyDown);
+        this._finishDone();
     }
 
     abortForLeave() {
@@ -225,10 +318,13 @@ export class CaseStudyDetail {
                 }
                 : this.leftHalfRect();
 
+        if (this.tl) {
+            this.tl.kill();
+            this.tl = null;
+        }
         gsap.killTweensOf(this.copyEls);
         gsap.killTweensOf(this.panel);
         this.killPlaneTweens();
-        this.running = null;
         gsap.set(this.panel, {display: "none"});
         gsap.set(this.copyEls, {clearProps: "opacity,visibility"});
         this.detachPlanes();
@@ -236,31 +332,8 @@ export class CaseStudyDetail {
         this.activePlane = null;
         this.state = "closed";
         window.removeEventListener("keydown", this.onKeyDown);
+        this._finishDone();
         return hero;
-    }
-
-    async reset({notify = true} = {}) {
-        this.restorePlanes();
-        gsap.set(this.panel, {display: "none"});
-        gsap.set(this.copyEls, {clearProps: "opacity,visibility"});
-
-        this.rebindSlots();
-
-        this.activeSlotIndex = null;
-        this.activePlane = null;
-        this.state = "closed";
-
-        window.removeEventListener("keydown", this.onKeyDown);
-        if (notify) this.onClose?.();
-    }
-
-    rebindSlots() {
-        this.snapPlanesToSlots();
-        for (let i = 0; i < this.slotCount(); i++) {
-            const plane = this.planeForSlot(i);
-            const slot = this.slotEl(i);
-            if (plane && slot) plane.trackedEl = slot;
-        }
     }
 
     onKeyDown(e) {
