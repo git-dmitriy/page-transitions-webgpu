@@ -333,23 +333,27 @@ html.js #footer a {
 }
 
 .page-gallery .slot-0 {
-    aspect-ratio: 4907 / 7360;
+    aspect-ratio: 1800 / 1200;
 }
 
 .page-gallery .slot-1 {
-    aspect-ratio: 6000 / 4000;
+    aspect-ratio: 1800 / 2700;
 }
 
 .page-gallery .slot-2 {
-    aspect-ratio: 3634 / 5998;
+    aspect-ratio: 1800 / 1440;
 }
 
 .page-gallery .slot-3 {
-    aspect-ratio: 3769 / 5025;
+    aspect-ratio: 1800 / 2700;
 }
 
 .page-gallery .slot-4 {
-    aspect-ratio: 6804 / 4104;
+    aspect-ratio: 1800 / 1200;
+}
+
+.page-gallery .slot-5 {
+    aspect-ratio: 1800 / 2700;
 }
 
 html.scroll-lock,
@@ -453,21 +457,25 @@ html.scroll-lock body {
 }
 
 .page-inner[data-image="0"] .case-slot {
-    aspect-ratio: 4907 / 7360;
+    aspect-ratio: 1800 / 1200;
 }
 
 .page-inner[data-image="1"] .case-slot {
-    aspect-ratio: 6000 / 4000;
+    aspect-ratio: 1800 / 2700;
 }
 
 .page-inner[data-image="2"] .case-slot {
-    aspect-ratio: 3634 / 5998;
+    aspect-ratio: 1800 / 1440;
 }
 
 .page-inner[data-image="3"] .case-slot {
-    aspect-ratio: 3769 / 5025;
+    aspect-ratio: 1800 / 2700;
 }
 
 .page-inner[data-image="4"] .case-slot {
-    aspect-ratio: 6804 / 4104;
+    aspect-ratio: 1800 / 1200;
+}
+
+.page-inner[data-image="5"] .case-slot {
+    aspect-ratio: 1800 / 2700;
 }

@@ -27,18 +27,19 @@ function roundedRectOpacityNode(sizeUniform, radiusUniform, opacityUniform) {
 }
 
 const IMAGES = [
-    "/images/christian-regg-FNaFLvbLFuk-unsplash.webp",
-    "/images/fabrizio-conti-rMWmDMeaoBk-unsplash.webp",
-    "/images/johannes-andersson-UCd78vfC8vU-unsplash.webp",
-    "/images/mads-schmidt-rasmussen-xfngap_DToE-unsplash.webp",
-    "/images/weichao-deng-eyn0LjpNWV4-unsplash.webp",
+    "/images/ayadi-ghaith-Sa_f2CQZ5oU-unsplash.webp",
+    "/images/ethan-hu-6fv20fZwepc-unsplash.webp",
+    "/images/mitchell-orr-048e7cgfoMg-unsplash.webp",
+    "/images/uladzislau-petrushkevich-KKRzHcQ8gCo-unsplash.webp",
+    "/images/joshua-hummell-zmPqoM641fY-unsplash.webp",
+    "/images/alexander-kaufmann-TJeYNGqZQlo-unsplash.webp",
 ];
 
-export const MAIN_COUNT = IMAGES.length; // 5
+export const MAIN_COUNT = IMAGES.length;
 export {IMAGES};
-export const SATELLITES_PER_IMAGE = 4; // 4 satellites per image
-export const SATELLITE_COUNT = MAIN_COUNT * SATELLITES_PER_IMAGE; // 20
-export const TOTAL_PLANES = MAIN_COUNT + SATELLITE_COUNT; // 25
+export const SATELLITES_PER_IMAGE = 4;
+export const SATELLITE_COUNT = MAIN_COUNT * SATELLITES_PER_IMAGE;
+export const TOTAL_PLANES = MAIN_COUNT + SATELLITE_COUNT;
 
 export function mainIdx(image) {
     return image;

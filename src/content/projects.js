@@ -1,43 +1,51 @@
 export const projects = [
     {
-        slug: 'nova-commerce',
-        title: 'Nova Commerce',
+        slug: 'uppsala-embankment',
+        title: 'Uppsala Embankment',
         description:
-            'A full redesign of a fashion e-commerce storefront with a focus on product discovery and checkout speed. We rebuilt the catalog around lazy-loaded media, simplified the cart flow to three steps, and cut time-to-interaction on mobile by roughly forty percent.',
-        tags: ['E-commerce', 'Vue', 'Performance'],
+            'Fyrisån cuts through Uppsala under low autumn light — brick façades, bare branches, and the river slowing after the first cold weeks. Shot in Uppsala, Sweden by Ayadi Ghaith. Photo from Unsplash.',
+        tags: ['Sweden', 'Autumn', 'City'],
         index: 0,
     },
     {
-        slug: 'atlas-dashboard',
-        title: 'Atlas Dashboard',
+        slug: 'rain-path',
+        title: 'Rain Path',
         description:
-            'An analytics dashboard for a logistics team that needed live shipment tracking without the clutter of their legacy ERP. Custom chart components, role-based views, and a dark UI that stays readable on warehouse floor monitors.',
-        tags: ['Dashboard', 'Data viz', 'React'],
+            'A wet walkway after a long shower — puddles, soft focus greens, and that flat light you only get when the sky never fully clears. Photographed by Ethan Hu. Photo from Unsplash.',
+        tags: ['Rain', 'Path', 'Mood'],
         index: 1,
     },
     {
-        slug: 'prism-studio',
-        title: 'Prism Studio',
+        slug: 'station-road',
+        title: 'Station Road',
         description:
-            'A portfolio site for a small design studio where motion carries most of the storytelling. WebGL-backed transitions between case studies, a CMS-driven project grid, and a contact flow wired into their existing Notion pipeline.',
-        tags: ['Portfolio', 'WebGL', 'CMS'],
+            'Wet asphalt after rain, fairy lights across the street, and a shop window holding the last warm light of the day. Station Road (Heol yr Orsaf), Wales — photographed by Mitchell Orr. Photo from Unsplash.',
+        tags: ['UK', 'Autumn', 'Street'],
         index: 2,
     },
     {
-        slug: 'flux-banking',
-        title: 'Flux Banking',
+        slug: 'vejle-street',
+        title: 'Vejle Street',
         description:
-            'A mobile banking app prototype built for user testing before a native rewrite. Biometric login, spending breakdowns, and transfer flows — all in a responsive web shell that matched the final iOS visual language.',
-        tags: ['Mobile', 'Fintech', 'Prototype'],
+            'Side street in Vejle with parked cars, shop fronts, and the cooler palette of a Danish autumn afternoon. Vejle, Denmark by Uladzislau Petrushkevich. Photo from Unsplash.',
+        tags: ['Denmark', 'Autumn', 'Street'],
         index: 3,
     },
     {
-        slug: 'orbit-cms',
-        title: 'Orbit CMS',
+        slug: 'harpers-ferry',
+        title: 'Harpers Ferry',
         description:
-            'A headless CMS admin panel for a media company publishing across web, app, and newsletter. Block-based editor, preview modes for each channel, and a publishing API that reduced their average go-live time from hours to minutes.',
-        tags: ['CMS', 'Node', 'Editor'],
+            'An aerial look at the ridge town where the Potomac and Shenandoah meet — rooftops in the trees, hills turning early. Harpers Ferry, West Virginia by Joshua Hummell. Photo from Unsplash.',
+        tags: ['USA', 'Autumn', 'Aerial'],
         index: 4,
+    },
+    {
+        slug: 'bristol-alley',
+        title: 'Bristol Alley',
+        description:
+            'A narrow Bristol passage at dusk — string lights, a lit shopfront, and the last of the day caught between the walls. Bristol, United Kingdom by Alexander Kaufmann. Photo from Unsplash.',
+        tags: ['UK', 'Dusk', 'Alley'],
+        index: 5,
     },
 ];
 
