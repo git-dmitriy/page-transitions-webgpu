@@ -136,10 +136,13 @@ export class CaseStudyDetail {
             return;
         }
 
+        this.killPlaneTweens();
+        this.snapPlanesToSlots();
+        this.activePlane.opacity = 1;
         this.detachPlanes();
 
         const target = this.leftHalfRect();
-        if (target.z != null) this.activePlane.bounds.z = target.z;
+        this.activePlane.bounds.z = target.z ?? 0;
 
         gsap.set(this.panel, {display: "block", autoAlpha: 0});
         gsap.set(this.copyEls, {autoAlpha: 0});

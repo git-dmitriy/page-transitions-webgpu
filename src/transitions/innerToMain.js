@@ -8,6 +8,7 @@ import {getMainTargets} from '../core/layout.js';
 import {
     tweenBounds,
     tweenOpacity,
+    setBounds,
     DUR_FADE,
     EASE_FADE_OUT,
 } from './constants.js';
@@ -40,7 +41,7 @@ export class InnerToMainTransition {
         for (let i = 0; i < MAIN_COUNT; i++) {
             if (i === fromImage) continue;
             const main = gpu.planes[mainIdx(i)];
-            main.bounds = {...mainRects[i]};
+            setBounds(main, mainRects[i]);
             main.opacity = 0;
             fades.push(tweenOpacity(main, 1, {delay: 0.25}));
         }

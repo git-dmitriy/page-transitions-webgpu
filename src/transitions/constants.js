@@ -10,6 +10,14 @@ export const EASE_MORPH = 'power3.inOut';
 export const EASE_FADE = 'power2.out';
 export const EASE_FADE_OUT = 'power2.in';
 
+export function setBounds(plane, target) {
+    plane.bounds.x = target.x;
+    plane.bounds.y = target.y;
+    plane.bounds.w = target.w;
+    plane.bounds.h = target.h;
+    plane.bounds.z = target.z ?? 0;
+}
+
 export function tweenBounds(plane, target, opts = {}) {
     if (target.z != null) plane.bounds.z = target.z;
     return gsap.to(plane.bounds, {

@@ -7,6 +7,7 @@ import {
 import {
     tweenBounds,
     tweenOpacity,
+    setBounds,
     DUR_FADE,
     EASE_FADE_OUT,
 } from './constants.js';
@@ -39,7 +40,7 @@ export class InnerToIndexTransition {
         for (let i = 0; i < MAIN_COUNT; i++) {
             if (i === fromImage) continue;
             const main = gpu.planes[mainIdx(i)];
-            main.bounds = {...targets[mainIdx(i)]};
+            setBounds(main, targets[mainIdx(i)]);
             main.opacity = 0;
             fades.push(tweenOpacity(main, 1, {delay: 0.2 + i * 0.04}));
         }

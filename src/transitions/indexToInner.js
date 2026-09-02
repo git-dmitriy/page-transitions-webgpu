@@ -8,6 +8,7 @@ import {getInnerPrimaryTarget, getInnerSatelliteTargets} from '../core/layout.js
 import {
     tweenBounds,
     tweenOpacity,
+    setBounds,
     DUR_FADE,
     EASE_FADE_OUT,
 } from './constants.js';
@@ -39,7 +40,7 @@ export class IndexToInnerTransition {
             const slot = satTargets[j];
             if (!slot) continue;
             const sat = gpu.planes[satIdx(toImage, j)];
-            sat.bounds = {...slot};
+            setBounds(sat, slot);
             sat.opacity = 0;
             fades.push(
                 tweenOpacity(sat, 1, {

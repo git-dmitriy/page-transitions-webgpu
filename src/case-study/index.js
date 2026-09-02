@@ -2,6 +2,7 @@ import {VerticalCarousel} from "./verticalCarousel.js";
 import {CaseStudyDetail} from "./detail.js";
 import {mainIdx, satIdx, SATELLITES_PER_IMAGE} from "../gpu.js";
 import {CASE_STUDY_PRIMARY_SLOT, CASE_STUDY_SLOT_COUNT} from "./slots.js";
+import {controllerRef} from "../app-context.js";
 
 export {
     CASE_STUDY_SLOT_COUNT, CASE_STUDY_PRIMARY_SLOT, innerSatelliteSlotIndices, planeIndexForInnerSlot
@@ -25,6 +26,15 @@ export function createCaseStudy({root, gpu, project}) {
         carousel.resume();
     }
 
+    function canOpenDetail() {
+        if (detail.state !== "closed") return false;
+        const controller = controllerRef.value;
+        if (!controller) return true;
+        if (controller.mutating) return false;
+        if (!controller.introDone) return false;
+        return true;
+    }
+
     detail.onClose = resumeCarousel;
 
     carousel.prepare();
@@ -35,7 +45,7 @@ export function createCaseStudy({root, gpu, project}) {
         slots[i].tabIndex = 0;
         slots[i].setAttribute("role", "button");
         const open = () => {
-            if (detail.state !== "closed") return;
+            if (!canOpenDetail()) return;
             carousel.stop();
             carousel.settle();
             detail.open(slotIndex);

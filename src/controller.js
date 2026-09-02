@@ -218,6 +218,7 @@ export class Controller {
 
         this.current = null;
         this.mutating = false;
+        this.introDone = false;
         this.carousel = null;
         this.indexFloat = null;
 
@@ -309,10 +310,20 @@ export class Controller {
                 duration: INTRO_PLANE_DURATION,
                 stagger: INTRO_PLANE_STAGGER,
                 ease: "power2.out",
+                onComplete: () => {
+                    this.introDone = true;
+                },
             });
+        } else {
+            this.introDone = true;
         }
         animateChromeIn("#nav a", INTRO_NAV_DELAY);
         animateChromeIn("#footer a", INTRO_FOOTER_DELAY);
+    }
+
+    _detailIsOpen() {
+        const state = this.caseStudy?.detail?.state;
+        return Boolean(state && state !== "closed");
     }
 
     _syncPlaneToEl(plane, el) {
@@ -325,6 +336,8 @@ export class Controller {
     }
 
     _syncPageSlots(state) {
+        if (state.page === "inner" && this._detailIsOpen()) return;
+
         const sec = this.app.querySelector(`[data-page="${state.page}"]`);
         if (!sec) return;
 
@@ -431,6 +444,7 @@ export class Controller {
     }
 
     _snapLayout(state) {
+        if (state.page === "inner" && this._detailIsOpen()) return;
         if (state.page === "gallery") this.gpu.applyMainLayout();
         else if (state.page === "cloud") this.gpu.applyIndexLayout();
         else if (state.page === "inner") this.gpu.applyInnerLayout(state.image);
