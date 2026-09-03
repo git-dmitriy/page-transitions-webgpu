@@ -159,7 +159,7 @@ export class IndexFloat {
             const {x: bx, y: by, w, h, z} = plane.bounds;
             if (w <= 0 || h <= 0) continue;
             if (x < bx || x > bx + w || y < by || y > by + h) continue;
-            if (!best || z > best.z) best = {image: plane.image, z};
+            if (!best || z < best.z) best = {image: plane.image, z};
         }
         return best?.image ?? null;
     }
