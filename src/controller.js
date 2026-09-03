@@ -21,12 +21,12 @@ gsap.registerPlugin(SplitText);
 // planes rotate about their Y axis (perspective lean). Tilt is derived from the
 // carousel's per-frame velocity (px), clamped, and eased toward so it springs
 // back to flat when scrolling stops.
-const TILT_RAD_PER_PX = 0.005;
-const TILT_MAX_RAD = 0.05; // ~11 degrees
+const TILT_RAD_PER_PX = 0.01;
+const TILT_MAX_RAD = 0.1; // ~6 degrees
 const TILT_LERP = 0.09;
 
-const INNER_TILT_RAD_PER_PX = 0.003;
-const INNER_TILT_MAX_RAD = 0.05;
+const INNER_TILT_RAD_PER_PX = 0.006;
+const INNER_TILT_MAX_RAD = 0.1;
 const INNER_TILT_LERP = 0.09;
 
 const TITLE_IN_DURATION = 0.7;
