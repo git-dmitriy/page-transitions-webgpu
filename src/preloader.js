@@ -1,6 +1,7 @@
 import gsap from "gsap";
 
 const COUNT_DURATION = 1.6;
+const HOLD_DURATION = 0.35;
 const FADE_DURATION = 0.6;
 
 export class Preloader {
@@ -24,6 +25,7 @@ export class Preloader {
                 countEl.textContent = `${Math.round(counter.value)}%`;
             },
         });
+        await gsap.to({}, {duration: HOLD_DURATION});
     }
 
     async reveal() {
