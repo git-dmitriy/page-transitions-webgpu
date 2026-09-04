@@ -1,0 +1,20 @@
+{
+  "name": "page-transitions-webgpu",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3000 --host",
+    "build": "vite build",
+    "start": "vite preview --port 8080"
+  },
+  "devDependencies": {
+    "vite": "^8.0.0"
+  },
+  "dependencies": {
+    "@vitejs/plugin-vue": "^6.0.8",
+    "gsap": "^3.15.0",
+    "three": "^0.184.0",
+    "vue": "^3.5.41"
+  }
+}

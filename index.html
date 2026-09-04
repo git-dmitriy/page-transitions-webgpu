@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js" data-theme="light">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>WebGPU Transitions</title>
+    <meta name="description"
+          content="WebGPU Transitions — demo of persistent page transitions: gallery carousel, spatial float index, and morphing case study views."/>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+    <link rel="stylesheet" type="text/css" href="src/global.css"/>
+    <script>
+        document.documentElement.className = 'js';
+        try {
+            var t = localStorage.getItem('theme');
+            if (t === 'dark' || t === 'light') {
+                document.documentElement.setAttribute('data-theme', t);
+            }
+        } catch (e) {
+        }
+    </script>
+</head>
+
+<body>
+<div id="root"></div>
+<div id="no-webgpu" hidden>
+    <div class="preloader-inner">
+        <h1 class="preloader-title">WebGPU required</h1>
+        <p class="preloader-tagline">
+            This demo runs only in a browser with WebGPU.<br>
+            Use Chrome or Edge, or turn WebGPU on and reload.
+        </p>
+    </div>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
