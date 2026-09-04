@@ -40,6 +40,21 @@ body {
     background: var(--bg);
 }
 
+#no-webgpu {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: var(--bg);
+}
+
+#no-webgpu .preloader-title {
+    opacity: 1;
+}
+
+#no-webgpu .preloader-tagline {
+    opacity: 0.5;
+}
+
 .preloader-inner {
     position: absolute;
     inset: 0;

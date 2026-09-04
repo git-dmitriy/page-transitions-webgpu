@@ -11,7 +11,13 @@ async function start() {
     initTheme();
 
     const gpu = new GPU();
-    await gpu.init();
+    try {
+        await gpu.init();
+    } catch {
+        gpu.destroy();
+        document.getElementById("no-webgpu")?.removeAttribute("hidden");
+        return;
+    }
 
     const app = createApp(App);
     app.provide('gpu', gpu);
