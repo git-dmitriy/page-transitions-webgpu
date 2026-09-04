@@ -1,5 +1,5 @@
 import * as THREE from "three/webgpu";
-import {Fn, uv, uniform, vec2} from "three/tsl";
+import {Fn, texture, uv, uniform, vec2} from "three/tsl";
 
 const CORNER_RADIUS = 8;
 const CAMERA_DISTANCE = 1000;
@@ -54,15 +54,17 @@ export class GPU {
         this.onResizeLayout = null;
     }
 
-    _createPlaneMaterial(texture) {
+    _createPlaneMaterial(map) {
+        const uvRepeat = uniform(new THREE.Vector2(1, 1));
+        const uvOffset = uniform(new THREE.Vector2(0, 0));
         const material = new THREE.MeshBasicNodeMaterial({
-            map: texture,
             transparent: true,
         });
+        material.colorNode = texture(map, uv().mul(uvRepeat).add(uvOffset));
         const sizeUniform = uniform(new THREE.Vector2(1, 1));
         const opacityUniform = uniform(0);
         material.opacityNode = roundedRectOpacityNode(sizeUniform, this.radiusUniform, opacityUniform);
-        return {material, sizeUniform, opacityUniform};
+        return {material, sizeUniform, opacityUniform, uvRepeat, uvOffset};
     }
 
     async init() {
@@ -127,7 +129,8 @@ export class GPU {
 
     createPlanes() {
         for (let i = 0; i < MAIN_COUNT; i++) {
-            const {material, sizeUniform, opacityUniform} = this._createPlaneMaterial(this.textures[i]);
+            const {material, sizeUniform, opacityUniform, uvRepeat, uvOffset} =
+                this._createPlaneMaterial(this.textures[i]);
             const mesh = new THREE.Mesh(this.geometry, material);
             this.scene.add(mesh);
             this.planes.push({
@@ -135,6 +138,8 @@ export class GPU {
                 material,
                 sizeUniform,
                 opacityUniform,
+                uvRepeat,
+                uvOffset,
                 bounds: {x: 0, y: 0, w: 0, h: 0, z: 0},
                 opacity: 0,
                 tilt: 0,
@@ -147,9 +152,8 @@ export class GPU {
 
         for (let i = 0; i < MAIN_COUNT; i++) {
             for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
-                const {material, sizeUniform, opacityUniform} = this._createPlaneMaterial(
-                    this.textures[i],
-                );
+                const {material, sizeUniform, opacityUniform, uvRepeat, uvOffset} =
+                    this._createPlaneMaterial(this.textures[i]);
                 const mesh = new THREE.Mesh(this.geometry, material);
                 this.scene.add(mesh);
                 this.planes.push({
@@ -157,6 +161,8 @@ export class GPU {
                     material,
                     sizeUniform,
                     opacityUniform,
+                    uvRepeat,
+                    uvOffset,
                     bounds: {x: 0, y: 0, w: 0, h: 0, z: 0},
                     opacity: 0,
                     tilt: 0,
@@ -184,6 +190,19 @@ export class GPU {
         mesh.renderOrder = -(bounds.z ?? 0);
         plane.sizeUniform.value.set(pw, ph);
         plane.opacityUniform.value = opacity;
+        const ia = this.aspects[plane.image];
+        if (ia > 0) {
+            const ra = pw / ph;
+            if (ia > ra) {
+                const rx = ra / ia;
+                plane.uvRepeat.value.set(rx, 1);
+                plane.uvOffset.value.set((1 - rx) / 2, 0);
+            } else {
+                const ry = ia / ra;
+                plane.uvRepeat.value.set(1, ry);
+                plane.uvOffset.value.set(0, (1 - ry) / 2);
+            }
+        }
         mesh.visible = opacity > 0.001 && bounds.w > 0;
     }
 
