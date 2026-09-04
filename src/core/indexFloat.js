@@ -139,8 +139,6 @@ export class IndexFloat {
     }
 
     measure() {
-        this.rotX = 0;
-        this.rotY = 0;
         this.velX = 0;
         this.velY = 0;
         this.computeLayout();

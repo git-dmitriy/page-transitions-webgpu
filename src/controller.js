@@ -132,6 +132,33 @@ function animateCaptionsOut(sec) {
     });
 }
 
+function animateNoteIn(sec) {
+    if (!sec) return null;
+    const p = sec.querySelector(".page-note");
+    if (!p) return null;
+    const split = SplitText.create(p, {type: "lines", mask: "lines"});
+    sec._noteSplit = split;
+    return gsap.from(split.lines, {
+        yPercent: 102,
+        duration: CAPTION_IN_DURATION,
+        stagger: CAPTION_IN_STAGGER,
+        ease: "power3.out",
+        delay: 0.15,
+    });
+}
+
+function animateNoteOut(sec) {
+    if (!sec) return null;
+    const split = sec._noteSplit;
+    if (!split) return null;
+    return gsap.to(split.lines, {
+        yPercent: -102,
+        duration: CAPTION_OUT_DURATION,
+        stagger: CAPTION_OUT_STAGGER,
+        ease: "power3.out",
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Intro: played once on the first page load (never on SPA transitions). The
 // active planes fade up while the persistent chrome — the left nav and the
@@ -298,10 +325,11 @@ export class Controller {
     }
 
     playIntro() {
-        const sec = this.app.querySelector(`[data-page="${this.current.page}"]`);
+        const sec = this.app.children[0];
         animateTitleIn(sec);
         animateFactIn(sec);
         animateCaptionsIn(sec);
+        animateNoteIn(sec);
 
         const planes = this.gpu.planes.filter((p) => p.introVisible);
         if (planes.length) {
@@ -419,7 +447,6 @@ export class Controller {
         }
         if (state.page === "cloud" && this.indexFloat) {
             this.indexFloat.stop();
-            this.indexFloat = null;
         }
         if (state.page === "inner") {
             for (const plane of this._innerTiltPlanes(state.image)) plane.tiltX = 0;
@@ -507,6 +534,7 @@ export class Controller {
         const titleOut = animateTitleOut(fromElNow);
         const factOut = animateFactOut(fromElNow);
         const captionsOut = animateCaptionsOut(fromElNow);
+        const noteOut = animateNoteOut(fromElNow);
 
         if (fromState.page === "inner" && this.caseStudy) {
             await this.caseStudy.settleDetail();
@@ -526,7 +554,7 @@ export class Controller {
         }
 
         if (next.page === "cloud") {
-            this.indexFloat = new IndexFloat(this.gpu);
+            if (!this.indexFloat) this.indexFloat = new IndexFloat(this.gpu);
             this.indexFloat.prepare();
         }
 
@@ -543,6 +571,7 @@ export class Controller {
         const titleIn = animateTitleIn(toEl);
         const factIn = animateFactIn(toEl);
         const captionsIn = animateCaptionsIn(toEl);
+        const noteIn = animateNoteIn(toEl);
 
         const ctx = {
             gpu: this.gpu,
@@ -560,6 +589,8 @@ export class Controller {
             factIn,
             captionsOut,
             captionsIn,
+            noteOut,
+            noteIn,
             txOut,
             txIn,
         ]);
