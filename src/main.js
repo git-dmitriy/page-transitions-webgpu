@@ -1,5 +1,4 @@
 import {createApp} from 'vue';
-import Lenis from 'lenis';
 import App from './App.vue';
 import {GPU} from './gpu.js';
 import {Controller} from './controller.js';
@@ -10,12 +9,6 @@ import {initTheme} from './composables/useTheme.js';
 
 async function start() {
     initTheme();
-
-    const lenis = new Lenis({
-        smoothWheel: true,
-        syncTouch: true,
-        lerp: 0.09,
-    });
 
     const gpu = new GPU();
     await gpu.init();
@@ -30,14 +23,12 @@ async function start() {
     const controller = new Controller({
         app: document.getElementById('app'),
         gpu,
-        lenis,
         pageStack,
     });
     controllerRef.value = controller;
     await controller.start();
 
-    function raf(time) {
-        lenis.raf(time);
+    function raf() {
         controller.tick();
         gpu.update();
         requestAnimationFrame(raf);

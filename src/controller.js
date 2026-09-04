@@ -17,12 +17,8 @@ import {MainToInnerTransition} from "./transitions/mainToInner.js";
 
 gsap.registerPlugin(SplitText);
 
-// Carousel scroll tilt: the harder you scroll the gallery page, the more the
-// planes rotate about their Y axis (perspective lean). Tilt is derived from the
-// carousel's per-frame velocity (px), clamped, and eased toward so it springs
-// back to flat when scrolling stops.
 const TILT_RAD_PER_PX = 0.01;
-const TILT_MAX_RAD = 0.1; // ~6 degrees
+const TILT_MAX_RAD = 0.1;
 const TILT_LERP = 0.09;
 
 const INNER_TILT_RAD_PER_PX = 0.006;
@@ -159,13 +155,6 @@ function animateNoteOut(sec) {
     });
 }
 
-// ---------------------------------------------------------------------------
-// Intro: played once on the first page load (never on SPA transitions). The
-// active planes fade up while the persistent chrome — the left nav and the
-// footer links — rises in with the same masked split-text reveal the page
-// title (top-right indicator) uses.
-// ---------------------------------------------------------------------------
-
 const INTRO_TEXT_DURATION = 0.7;
 const INTRO_TEXT_STAGGER = 0.06;
 const INTRO_NAV_DELAY = 0.1;
@@ -173,9 +162,6 @@ const INTRO_FOOTER_DELAY = 0.2;
 const INTRO_PLANE_DURATION = 1.0;
 const INTRO_PLANE_STAGGER = 0.08;
 
-// Masked word reveal for a group of persistent chrome links (#nav / #footer),
-// matching animateTitleIn. The split is reverted on completion so hover
-// underlines and layout return to their original markup.
 function animateChromeIn(selector, delay) {
     const els = document.querySelectorAll(selector);
     if (!els.length) return null;
@@ -186,8 +172,6 @@ function animateChromeIn(selector, delay) {
         splits.push(split);
         words.push(...split.words);
     }
-    // Links are hidden via CSS until now (avoids a flash while textures load);
-    // reveal them in the same tick the words are masked and offset below.
     gsap.set(els, {opacity: 1});
     return gsap.from(words, {
         yPercent: 102,
@@ -198,10 +182,6 @@ function animateChromeIn(selector, delay) {
         onComplete: () => splits.forEach((s) => s.revert()),
     });
 }
-
-// ---------------------------------------------------------------------------
-// Routes
-// ---------------------------------------------------------------------------
 
 function buildRoutes() {
     const routes = {
@@ -222,15 +202,10 @@ function buildRoutes() {
 
 const ROUTES = buildRoutes();
 
-// ---------------------------------------------------------------------------
-// Controller
-// ---------------------------------------------------------------------------
-
 export class Controller {
-    constructor({app, gpu, lenis, pageStack}) {
+    constructor({app, gpu, pageStack}) {
         this.app = app;
         this.gpu = gpu;
-        this.lenis = lenis;
         this.pageStack = pageStack;
         this.routes = ROUTES;
 
@@ -393,23 +368,24 @@ export class Controller {
         }
     }
 
+    _lockPageScroll() {
+        document.body.style.height = "100vh";
+        if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0);
+    }
+
     _enterPage(state, {projectCloud = true} = {}) {
         const sec = this.app.querySelector(`[data-page="${state.page}"]`);
         if (!sec) return;
 
         if (state.page === "gallery") {
-            document.body.style.height = "100vh";
-            this.lenis.stop();
-            this.lenis.scrollTo(0, {immediate: true, force: true});
+            this._lockPageScroll();
             this.carousel?.start();
             this._syncPageSlots(state);
             return;
         }
 
         if (state.page === "inner") {
-            document.body.style.height = "100vh";
-            this.lenis.stop();
-            this.lenis.scrollTo(0, {immediate: true, force: true});
+            this._lockPageScroll();
             this._prepareInnerTransition();
             this.caseStudy?.start();
             this._syncPageSlots(state);
@@ -417,9 +393,7 @@ export class Controller {
         }
 
         if (state.page === "cloud") {
-            document.body.style.height = "100vh";
-            this.lenis.stop();
-            this.lenis.scrollTo(0, {immediate: true, force: true});
+            this._lockPageScroll();
             if (!this.indexFloat) {
                 this.indexFloat = new IndexFloat(this.gpu);
                 this.indexFloat.prepare();
@@ -472,9 +446,11 @@ export class Controller {
 
     _snapLayout(state) {
         if (state.page === "inner" && this._detailIsOpen()) return;
-        if (state.page === "gallery") this.gpu.applyMainLayout();
-        else if (state.page === "cloud") this.gpu.applyIndexLayout();
-        else if (state.page === "inner") this.gpu.applyInnerLayout(state.image);
+        if (state.page === "gallery" || state.page === "cloud") {
+            this.gpu.applyMainLayout();
+        } else if (state.page === "inner") {
+            this.gpu.applyInnerLayout(state.image);
+        }
     }
 
     _reapplyLayout() {
@@ -564,7 +540,6 @@ export class Controller {
         }
 
         if (window.scrollY !== 0 || window.scrollX !== 0) {
-            this.lenis.scrollTo(0, {immediate: true, force: true});
             window.scrollTo(0, 0);
         }
 

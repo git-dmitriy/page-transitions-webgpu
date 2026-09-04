@@ -1,18 +1,9 @@
 import * as THREE from "three/webgpu";
 import {Fn, uv, uniform, vec2} from "three/tsl";
 
-// Corner radius in CSS pixels, kept subtle.
 const CORNER_RADIUS = 8;
-
-// Camera distance from the z=0 plane. The perspective FOV is matched to this so
-// the z=0 plane maps 1:1 to CSS pixels (identical framing to an ortho camera);
-// smaller values = stronger perspective for out-of-plane tilts.
 const CAMERA_DISTANCE = 1000;
 
-// Builds an opacity node that masks the quad into a rounded rectangle using a
-// rounded-box SDF. `sizeUniform` is the plane's pixel size (so the radius is a
-// constant pixel value regardless of the plane's dimensions) and the result is
-// multiplied by `opacityUniform`, the plane's fade value.
 function roundedRectOpacityNode(sizeUniform, radiusUniform, opacityUniform) {
     const mask = Fn(() => {
         const half = sizeUniform.mul(0.5);
@@ -20,7 +11,6 @@ function roundedRectOpacityNode(sizeUniform, radiusUniform, opacityUniform) {
         const p = uv().sub(0.5).mul(sizeUniform);
         const q = p.abs().sub(half).add(r);
         const dist = q.max(vec2(0.0)).length().add(q.x.max(q.y).min(0.0)).sub(r);
-        // ~2px feather for antialiased edges; 1 inside, 0 outside.
         return dist.smoothstep(-1.0, 1.0).oneMinus();
     })();
     return mask.mul(opacityUniform);
@@ -65,8 +55,6 @@ export class GPU {
     }
 
     _createPlaneMaterial(texture) {
-        // NodeMaterial (not the classic MeshBasicMaterial) is required for
-        // `opacityNode`; the classic material silently ignores node properties.
         const material = new THREE.MeshBasicNodeMaterial({
             map: texture,
             transparent: true,
@@ -102,11 +90,6 @@ export class GPU {
         window.addEventListener("resize", this.onResize);
     }
 
-    // Compile every plane's pipeline and upload its texture to the GPU up front,
-    // while the preloader is still on screen. Without this, the work happens on
-    // the first frame the planes turn visible — exactly when the intro plays —
-    // and the animation hitches. The planes start at opacity 0, so the warm
-    // render draws nothing (and sits behind the preloader regardless).
     async warmup() {
         await this.renderer.compileAsync(this.scene, this.camera);
         this.renderer.render(this.scene, this.camera);
@@ -161,7 +144,7 @@ export class GPU {
                 image: i,
             });
         }
-        // 20 satellite planes (4 per image)
+
         for (let i = 0; i < MAIN_COUNT; i++) {
             for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
                 const {material, sizeUniform, opacityUniform} = this._createPlaneMaterial(
@@ -218,15 +201,6 @@ export class GPU {
             this.planes[mainIdx(i)].opacity = i === image ? 1 : 0;
             for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
                 this.planes[satIdx(i, j)].opacity = i === image ? 1 : 0;
-            }
-        }
-    }
-
-    applyIndexLayout() {
-        for (let i = 0; i < MAIN_COUNT; i++) {
-            this.planes[mainIdx(i)].opacity = 1;
-            for (let j = 0; j < SATELLITES_PER_IMAGE; j++) {
-                this.planes[satIdx(i, j)].opacity = 0;
             }
         }
     }

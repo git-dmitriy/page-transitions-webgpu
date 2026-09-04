@@ -1,6 +1,8 @@
-# Dmitriy Shalberkin — Portfolio
+# WebGPU Transitions
 
-Personal portfolio with WebGPU-powered page transitions.
+Demo of persistent page transitions with WebGPU: a gallery carousel, a spatial float index, and morphing case study views. Images stay on a shared GPU canvas across routes.
+
+Requires a browser with WebGPU.
 
 ## Setup
 
