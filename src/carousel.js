@@ -1,3 +1,5 @@
+import {bindPointerScroll} from './core/pointerScroll.js';
+
 const LERP = 0.1;
 const GAP_PX = 48;
 
@@ -11,6 +13,9 @@ export class Carousel {
         this.periodX = 0;
         this.velocity = 0; // signed px/frame the carousel moved this tick
         this.onWheel = this.onWheel.bind(this);
+        this._pointer = bindPointerScroll((dx, dy) => {
+            this.targetScrollX -= Math.abs(dx) > Math.abs(dy) ? dx : dy;
+        });
     }
 
     prepare() {
@@ -26,10 +31,12 @@ export class Carousel {
             capture: true,
             passive: false,
         });
+        this._pointer.start();
     }
 
     stop() {
         window.removeEventListener('wheel', this.onWheel, {capture: true});
+        this._pointer.stop();
     }
 
     measure() {

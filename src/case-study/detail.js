@@ -25,6 +25,7 @@ export class CaseStudyDetail {
 
         this.onClose = null;
         this.onKeyDown = this.onKeyDown.bind(this);
+        this.onResize = this.onResize.bind(this);
         this.onBackClick = () => this.close();
         this.backBtn?.addEventListener("click", this.onBackClick);
     }
@@ -47,7 +48,16 @@ export class CaseStudyDetail {
         return this.root.querySelectorAll(".case-scroll .slot")[slotIndex];
     }
 
-    leftHalfRect() {
+    heroRect() {
+        if (window.matchMedia("(max-width: 768px)").matches) {
+            return {
+                x: 0,
+                y: 0,
+                w: window.innerWidth,
+                h: window.innerHeight / 2,
+                z: 0,
+            };
+        }
         return {
             x: 0,
             y: 0,
@@ -55,6 +65,16 @@ export class CaseStudyDetail {
             h: window.innerHeight,
             z: 0,
         };
+    }
+
+    onResize() {
+        if (this.state !== "open" || !this.activePlane) return;
+        const target = this.heroRect();
+        this.activePlane.bounds.x = target.x;
+        this.activePlane.bounds.y = target.y;
+        this.activePlane.bounds.w = target.w;
+        this.activePlane.bounds.h = target.h;
+        this.activePlane.bounds.z = target.z;
     }
 
     killPlaneTweens() {
@@ -121,6 +141,7 @@ export class CaseStudyDetail {
         this.activePlane = null;
         this.state = "closed";
         window.removeEventListener("keydown", this.onKeyDown);
+        window.removeEventListener("resize", this.onResize);
         this._finishDone();
         if (notify) this.onClose?.();
     }
@@ -141,13 +162,14 @@ export class CaseStudyDetail {
         this.activePlane.opacity = 1;
         this.detachPlanes();
 
-        const target = this.leftHalfRect();
+        const target = this.heroRect();
         this.activePlane.bounds.z = target.z ?? 0;
 
         gsap.set(this.panel, {display: "block", autoAlpha: 0});
         gsap.set(this.copyEls, {autoAlpha: 0});
 
         window.addEventListener("keydown", this.onKeyDown);
+        window.addEventListener("resize", this.onResize);
 
         const done = this._trackDone();
 
@@ -304,6 +326,7 @@ export class CaseStudyDetail {
         this.activePlane = null;
         this.state = "closed";
         window.removeEventListener("keydown", this.onKeyDown);
+        window.removeEventListener("resize", this.onResize);
         this._finishDone();
     }
 
@@ -319,7 +342,7 @@ export class CaseStudyDetail {
                     h: this.activePlane.bounds.h,
                     z: 0,
                 }
-                : this.leftHalfRect();
+                : this.heroRect();
 
         if (this.tl) {
             this.tl.kill();
@@ -335,6 +358,7 @@ export class CaseStudyDetail {
         this.activePlane = null;
         this.state = "closed";
         window.removeEventListener("keydown", this.onKeyDown);
+        window.removeEventListener("resize", this.onResize);
         this._finishDone();
         return hero;
     }
@@ -347,6 +371,9 @@ export class CaseStudyDetail {
         this.backBtn?.removeEventListener("click", this.onBackClick);
         this.onClose = null;
         if (this.state !== "closed") this.forceClose();
-        else window.removeEventListener("keydown", this.onKeyDown);
+        else {
+            window.removeEventListener("keydown", this.onKeyDown);
+            window.removeEventListener("resize", this.onResize);
+        }
     }
 }
